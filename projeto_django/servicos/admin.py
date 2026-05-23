@@ -4,7 +4,7 @@ from .models import UserProfile, CategoriaServico, PrestadorPerfil, Contrato, Av
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'tipo', 'cidade', 'estado', 'plano']
+    list_display = ['user', 'tipo', 'cidade', 'estado', 'cep', 'plano']
     list_filter = ['tipo', 'plano']
     search_fields = ['user__username', 'user__email', 'cidade']
     list_editable = ['tipo', 'plano']
@@ -25,7 +25,7 @@ class AvaliacaoInline(admin.TabularInline):
 
 @admin.register(PrestadorPerfil)
 class PrestadorPerfilAdmin(admin.ModelAdmin):
-    list_display = ['user', 'get_localizacao', 'valor_hora', 'nota_media', 'total_servicos', 'disponivel', 'status_adesao']
+    list_display = ['user', 'get_localizacao', 'valor_hora', 'nota_media', 'total_servicos', 'disponivel', 'status_adesao', 'deleted']
     list_filter = ['disponivel', 'status_adesao', 'estado']
     search_fields = ['user__username', 'user__first_name', 'user__last_name', 'cidade']
     list_editable = ['disponivel', 'status_adesao']

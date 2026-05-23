@@ -16,6 +16,9 @@ interface ProfileData {
   estado: string;
   telefone: string;
   cep: string;
+  level: number;
+  xp: number;
+  nextLevelXp: number;
 }
 
 export function ProfilePage() {
@@ -36,6 +39,9 @@ export function ProfilePage() {
     estado: '',
     telefone: '',
     cep: '',
+    level: 1,
+    xp: 150,
+    nextLevelXp: 500,
   });
 
   const token = localStorage.getItem('user_token') || '';
@@ -71,6 +77,9 @@ export function ProfilePage() {
           estado: profileData.estado || '',
           telefone: profileData.telefone || '',
           cep: profileData.cep || '',
+          level: profileData.level || 1,
+          xp: profileData.xp || 150,
+          nextLevelXp: profileData.nextLevelXp || 500,
         });
 
         localStorage.setItem('user_data', JSON.stringify(profileData));
@@ -112,12 +121,26 @@ export function ProfilePage() {
         }
 
         setSuccessMessage(data.message || 'Perfil atualizado com sucesso');
-        localStorage.setItem('user_data', JSON.stringify(profile));
+        if (data.profile) {
+          setProfile((prev) => ({
+            ...prev,
+            first_name: data.profile.first_name || '',
+            last_name: data.profile.last_name || '',
+            email: data.profile.email || prev.email,
+            cidade: data.profile.cidade || '',
+            estado: data.profile.estado || '',
+            telefone: data.profile.telefone || '',
+            cep: data.profile.cep || '',
+          }));
+          localStorage.setItem('user_data', JSON.stringify(data.profile));
+        } else {
+          localStorage.setItem('user_data', JSON.stringify(profile));
+        }
         setIsEditing(false);
       })
       .catch((err) => {
         console.error('Erro ao salvar perfil:', err);
-        setError('Não foi possível salvar as alterações.');
+        setError(err.message || 'Nao foi possivel salvar as alteracoes.');
       })
       .finally(() => setIsSaving(false));
   };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, Loader } from 'lucide-react';
 import { ModernServiceCard } from './ModernServiceCard';
 import { useLocationStore } from '../stores/locationStore';
 
@@ -20,6 +20,7 @@ export function ProfessionalCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const { selectedLocation, searchQuery } = useLocationStore();
 
   useEffect(() => {
@@ -30,6 +31,9 @@ export function ProfessionalCarousel() {
     if (searchQuery) {
       url += `search=${encodeURIComponent(searchQuery)}&`;
     }
+
+    setIsFetching(true);
+    setCurrentIndex(0);
 
     fetch(url)
       .then(res => res.json())
@@ -56,7 +60,11 @@ export function ProfessionalCarousel() {
         });
         setServices(mapped);
       })
-      .catch(err => console.error('Error fetching providers:', err));
+      .catch(err => {
+        console.error('Error fetching providers:', err);
+        setServices([]);
+      })
+      .finally(() => setIsFetching(false));
   }, [selectedLocation, searchQuery]);
 
 
@@ -92,10 +100,11 @@ export function ProfessionalCarousel() {
     setTimeout(() => setIsLoading(false), 300);
   };
 
-  const visibleServices = services.slice(
-    currentIndex * itemsPerPage,
-    (currentIndex + 1) * itemsPerPage
-  );
+  const normalizedSearch = searchQuery.trim();
+  const hasFilters = Boolean(normalizedSearch || selectedLocation);
+  const emptyTitle = normalizedSearch
+    ? `Nenhum profissional encontrado para a busca "${normalizedSearch}"`
+    : 'Nenhum profissional encontrado';
 
   return (
     <div className="relative group">
@@ -130,53 +139,68 @@ export function ProfessionalCarousel() {
         </div>
       </div>
 
-      {/* Carousel Content */}
-      <div className="relative overflow-hidden rounded-2xl">
-        <div 
-          className="flex transition-transform duration-500 ease-out"
-          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-        >
-          {Array.from({ length: totalPages }).map((_, pageIndex) => (
-            <div key={pageIndex} className="w-full flex-shrink-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-2">
-                {services
-                  .slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage)
-                  .map((service) => (
-                    <div 
-                      key={service.id}
-                      className={`transform transition-all duration-300 ${
-                        isLoading ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
-                      }`}
-                    >
-                      <ModernServiceCard service={service} />
-                    </div>
-                  ))}
-              </div>
+      {isFetching ? (
+        <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+          <Loader className="h-8 w-8 animate-spin text-secondary" />
+        </div>
+      ) : services.length === 0 ? (
+        <div className="min-h-[260px] rounded-2xl border border-white/10 bg-white/5 px-6 py-12 text-center">
+          <h3 className="text-2xl font-bold text-white">{emptyTitle}</h3>
+          <p className="mt-3 text-gray-400">
+            {hasFilters
+              ? 'Tente outro termo, categoria ou localizacao.'
+              : 'Ainda nao ha profissionais cadastrados para exibir.'}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="relative overflow-hidden rounded-2xl">
+            <div 
+              className="flex transition-transform duration-500 ease-out"
+              style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+            >
+              {Array.from({ length: totalPages }).map((_, pageIndex) => (
+                <div key={pageIndex} className="w-full flex-shrink-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-2">
+                    {services
+                      .slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage)
+                      .map((service) => (
+                        <div 
+                          key={service.id}
+                          className={`transform transition-all duration-300 ${
+                            isLoading ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+                          }`}
+                        >
+                          <ModernServiceCard service={service} />
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* Progress Bar */}
-      <div className="mt-8 flex items-center justify-center gap-4">
-        <div className="flex gap-2">
-          {Array.from({ length: totalPages }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                index === currentIndex 
-                  ? 'w-8 bg-secondary' 
-                  : 'w-2 bg-white/30 hover:bg-white/50'
-              }`}
-            />
-          ))}
-        </div>
-        
-        <div className="text-sm text-gray-400 ml-4">
-          {currentIndex + 1} de {totalPages}
-        </div>
-      </div>
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <div className="flex gap-2">
+              {Array.from({ length: totalPages }).map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    index === currentIndex 
+                      ? 'w-8 bg-secondary' 
+                      : 'w-2 bg-white/30 hover:bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+            
+            <div className="text-sm text-gray-400 ml-4">
+              {currentIndex + 1} de {totalPages}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

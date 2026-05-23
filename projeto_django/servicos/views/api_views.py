@@ -2,12 +2,11 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models import Q
-from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from ..models import CategoriaServico, PrestadorPerfil, Contrato, UserProfile, Session
 import uuid
-from django.utils import timezone
 
+from ..forms import ClienteEditForm, ClienteForm, PrestadorCadastroForm
 from ..serializers import CategoriaSerializer, PrestadorSerializer, UserSerializer, ContratoSerializer
 
 
@@ -141,11 +140,7 @@ class ProfileAPIView(APIView):
         user = self.get_user_from_token(request)
         if not user:
             return Response({'success': False, 'message': 'Não autorizado'}, status=status.HTTP_401_UNAUTHORIZED)
-        profile = UserProfile.objects.filter(user=user).first()
-        data = UserSerializer(user).data
-        if profile:
-            data.update({'cidade': profile.cidade, 'estado': profile.estado, 'telefone': profile.telefone, 'cep': getattr(profile, 'cep', '')})
-        return Response({'success': True, 'profile': data})
+        return Response({'success': True, 'profile': self.serialize_profile(user)})
 
     def put(self, request):
         user = self.get_user_from_token(request)
@@ -153,26 +148,38 @@ class ProfileAPIView(APIView):
             return Response({'success': False, 'message': 'Não autorizado'}, status=status.HTTP_401_UNAUTHORIZED)
         first_name = request.data.get('first_name')
         last_name = request.data.get('last_name')
-        cidade = request.data.get('cidade')
-        estado = request.data.get('estado')
-        telefone = request.data.get('telefone')
-        cep = request.data.get('cep')
         if first_name is not None:
             user.first_name = first_name
         if last_name is not None:
             user.last_name = last_name
         user.save()
         profile, _ = UserProfile.objects.get_or_create(user=user)
-        if cidade is not None:
-            profile.cidade = cidade
-        if estado is not None:
-            profile.estado = estado
-        if telefone is not None:
-            profile.telefone = telefone
-        if cep is not None:
-            profile.cep = cep
-        profile.save()
-        return Response({'success': True, 'message': 'Perfil atualizado'})
+        form = ClienteEditForm(request.data, instance=profile)
+        if not form.is_valid():
+            first_error = next(iter(form.errors.values()))[0]
+            return Response({
+                'success': False,
+                'message': first_error,
+                'errors': form.errors,
+            }, status=status.HTTP_400_BAD_REQUEST)
+        form.save()
+        return Response({
+            'success': True,
+            'message': 'Perfil atualizado',
+            'profile': self.serialize_profile(user),
+        })
+
+    def serialize_profile(self, user):
+        profile = UserProfile.objects.filter(user=user).first()
+        data = UserSerializer(user).data
+        if profile:
+            data.update({
+                'cidade': profile.cidade,
+                'estado': profile.estado,
+                'telefone': profile.telefone,
+                'cep': getattr(profile, 'cep', ''),
+            })
+        return data
 
     def delete(self, request):
         """Soft-delete the user/profile."""
@@ -202,16 +209,19 @@ class RegisterAPIView(APIView):
     permission_classes = []
 
     def post(self, request):
-        name = request.data.get('name', '')
-        email = request.data.get('email')
-        password = request.data.get('password')
-        cep = request.data.get('cep', '')
-        
-        if not email or not password:
+        form = ClienteForm(request.data)
+        if not form.is_valid():
+            first_error = next(iter(form.errors.values()))[0]
             return Response({
                 'success': False,
-                'message': 'Email e senha são obrigatórios'
+                'message': first_error,
+                'errors': form.errors,
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        name = form.cleaned_data['name']
+        email = form.cleaned_data['email']
+        password = form.cleaned_data['password']
+        cep = form.cleaned_data.get('cep', '')
             
         if User.objects.filter(email=email).exists() or User.objects.filter(username=email).exists():
             return Response({
@@ -245,14 +255,23 @@ class BecomeProfessionalAPIView(APIView):
     permission_classes = []
 
     def post(self, request):
-        email = request.data.get('email')
-        name = request.data.get('name', '')
-        phone = request.data.get('phone', '')
-        cep = request.data.get('cep', '')
-        category_id = request.data.get('category')
-        experience = request.data.get('experience', 0)
-        description = request.data.get('description', '')
-        price = request.data.get('price', 0)
+        form = PrestadorCadastroForm(request.data)
+        if not form.is_valid():
+            first_error = next(iter(form.errors.values()))[0]
+            return Response({
+                'success': False,
+                'message': first_error,
+                'errors': form.errors,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        email = form.cleaned_data['email']
+        name = form.cleaned_data['name']
+        phone = form.cleaned_data['phone']
+        cep = form.cleaned_data['cep']
+        category_id = form.cleaned_data['category']
+        experience = form.cleaned_data['experience']
+        description = form.cleaned_data['description']
+        price = form.cleaned_data['price']
         
         # Check if user exists or create one
         user = User.objects.filter(email=email).first()
@@ -278,14 +297,11 @@ class BecomeProfessionalAPIView(APIView):
         prestador.valor_hora = price
         # Ensure a UserProfile exists and update telefone/cep
         profile, _ = UserProfile.objects.get_or_create(user=user)
-        if phone:
-            profile.telefone = phone
-        if cep:
-            profile.cep = cep
+        profile.telefone = phone
+        profile.cep = cep
         profile.save()
-        if cep:
-            prestador.cep = cep
-        prestador.anos_experiencia = int(experience)
+        prestador.cep = cep
+        prestador.anos_experiencia = experience
         prestador.status_adesao = 'ATIVO'
         prestador.disponivel = True
         

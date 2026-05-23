@@ -21,7 +21,7 @@ class UserProfile(models.Model):
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='CLIENTE')
     cidade = models.CharField(max_length=100, blank=True, default='')
     estado = models.CharField(max_length=2, blank=True, default='')
-    cep = models.CharField(max_length=10, blank=True, default='')
+    cep = models.CharField(max_length=9, blank=True, default='')
     telefone = models.CharField(max_length=20, blank=True, default='')
     # Campos exclusivos de CLIENTE
     plano = models.CharField(max_length=10, choices=PLANO_CHOICES, default='NENHUM')
@@ -103,7 +103,7 @@ class PrestadorPerfil(models.Model):
     valor_hora = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     cidade = models.CharField(max_length=100, default='')
     estado = models.CharField(max_length=2, default='')
-    cep = models.CharField(max_length=10, blank=True, default='')
+    cep = models.CharField(max_length=9, blank=True, default='')
     anos_experiencia = models.PositiveIntegerField(default=0)
     disponivel = models.BooleanField(default=True)
     # Monetização: taxa de adesão anual R$ 400,00

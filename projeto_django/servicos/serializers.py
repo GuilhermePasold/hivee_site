@@ -24,7 +24,7 @@ class PrestadorSerializer(serializers.ModelSerializer):
         model = PrestadorPerfil
         fields = [
             'id', 'user', 'slug', 'bio', 'foto', 'especialidades', 
-            'valor_hora', 'cidade', 'estado', 'localizacao', 
+            'valor_hora', 'cidade', 'estado', 'cep', 'localizacao', 
             'anos_experiencia', 'disponivel', 'total_servicos', 'nota_media'
         ]
 class ContratoSerializer(serializers.ModelSerializer):
