@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from django.db.models import Q
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from ..models import CategoriaServico, PrestadorPerfil, Contrato
+from ..models import CategoriaServico, PrestadorPerfil, Contrato, UserProfile, Session
+import uuid
+from django.utils import timezone
 
 from ..serializers import CategoriaSerializer, PrestadorSerializer, UserSerializer, ContratoSerializer
 
@@ -23,7 +25,7 @@ class PrestadorListAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         # Allow looking up all providers first
-        queryset = PrestadorPerfil.objects.filter(disponivel=True)
+        queryset = PrestadorPerfil.objects.filter(disponivel=True, deleted=False)
         
         especialidade_slug = self.request.query_params.get('especialidade', None)
         categoria_id = self.request.query_params.get('categoria', None)
@@ -63,7 +65,7 @@ class PrestadorListAPIView(generics.ListAPIView):
 
 
 class PrestadorRetrieveAPIView(generics.RetrieveAPIView):
-    queryset = PrestadorPerfil.objects.all()
+    queryset = PrestadorPerfil.objects.filter(deleted=False)
     serializer_class = PrestadorSerializer
     permission_classes = []
     lookup_field = 'pk'
@@ -81,9 +83,20 @@ class LoginAPIView(APIView):
             user = User.objects.filter(username=email).first()
             
         if user and user.check_password(password):
+            profile = UserProfile.objects.filter(user=user).first()
+            prestador = PrestadorPerfil.objects.filter(user=user).first()
+            if not user.is_active or (profile and profile.deleted) or (prestador and prestador.deleted):
+                return Response({
+                    'success': False,
+                    'message': 'Conta desativada'
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            # create a session token
+            token = uuid.uuid4().hex
+            Session.objects.create(user=user, token=token)
             return Response({
                 'success': True,
-                'token': f'session-token-{user.id}',
+                'token': token,
                 'user': UserSerializer(user).data
             }, status=status.HTTP_200_OK)
             
@@ -93,6 +106,98 @@ class LoginAPIView(APIView):
         }, status=status.HTTP_401_UNAUTHORIZED)
 
 
+class LogoutAPIView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        token = request.data.get('token') or request.META.get('HTTP_AUTHORIZATION')
+        if token and token.startswith('Token '):
+            token = token.split(' ', 1)[1]
+        if not token:
+            return Response({'success': False, 'message': 'Token ausente'}, status=status.HTTP_400_BAD_REQUEST)
+        session = Session.objects.filter(token=token, expired=False).first()
+        if session:
+            session.expired = True
+            session.save()
+            return Response({'success': True, 'message': 'Desconectado com sucesso'})
+        return Response({'success': False, 'message': 'Sessão não encontrada'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class ProfileAPIView(APIView):
+    permission_classes = []
+
+    def get_user_from_token(self, request):
+        token = request.META.get('HTTP_AUTHORIZATION')
+        if token and token.startswith('Token '):
+            token = token.split(' ', 1)[1]
+        if not token:
+            return None
+        session = Session.objects.filter(token=token, expired=False).first()
+        if not session:
+            return None
+        return session.user
+
+    def get(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'success': False, 'message': 'Não autorizado'}, status=status.HTTP_401_UNAUTHORIZED)
+        profile = UserProfile.objects.filter(user=user).first()
+        data = UserSerializer(user).data
+        if profile:
+            data.update({'cidade': profile.cidade, 'estado': profile.estado, 'telefone': profile.telefone, 'cep': getattr(profile, 'cep', '')})
+        return Response({'success': True, 'profile': data})
+
+    def put(self, request):
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'success': False, 'message': 'Não autorizado'}, status=status.HTTP_401_UNAUTHORIZED)
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        cidade = request.data.get('cidade')
+        estado = request.data.get('estado')
+        telefone = request.data.get('telefone')
+        cep = request.data.get('cep')
+        if first_name is not None:
+            user.first_name = first_name
+        if last_name is not None:
+            user.last_name = last_name
+        user.save()
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        if cidade is not None:
+            profile.cidade = cidade
+        if estado is not None:
+            profile.estado = estado
+        if telefone is not None:
+            profile.telefone = telefone
+        if cep is not None:
+            profile.cep = cep
+        profile.save()
+        return Response({'success': True, 'message': 'Perfil atualizado'})
+
+    def delete(self, request):
+        """Soft-delete the user/profile."""
+        user = self.get_user_from_token(request)
+        if not user:
+            return Response({'success': False, 'message': 'Não autorizado'}, status=status.HTTP_401_UNAUTHORIZED)
+        profile = UserProfile.objects.filter(user=user).first()
+        if profile:
+            profile.deleted = True
+            profile.save()
+        # mark prestador profile deleted too if exists
+        try:
+            prest = PrestadorPerfil.objects.filter(user=user).first()
+            if prest:
+                prest.deleted = True
+                prest.save()
+        except Exception:
+            pass
+        user.is_active = False
+        user.save()
+        # expire all sessions
+        Session.objects.filter(user=user, expired=False).update(expired=True)
+        return Response({'success': True, 'message': 'Conta marcada como excluída (soft-delete)'})
+
+
 class RegisterAPIView(APIView):
     permission_classes = []
 
@@ -100,6 +205,7 @@ class RegisterAPIView(APIView):
         name = request.data.get('name', '')
         email = request.data.get('email')
         password = request.data.get('password')
+        cep = request.data.get('cep', '')
         
         if not email or not password:
             return Response({
@@ -124,6 +230,12 @@ class RegisterAPIView(APIView):
             first_name=first_name,
             last_name=last_name
         )
+        # Create a linked UserProfile and store CEP if provided
+        try:
+            UserProfile.objects.create(user=user, cidade='', estado='', telefone='', plano='NENHUM', cep=cep)
+        except Exception:
+            # If profile can't be created for some reason, ignore to avoid breaking registration
+            pass
         
         return Response({
             'success': True,
@@ -136,6 +248,7 @@ class BecomeProfessionalAPIView(APIView):
         email = request.data.get('email')
         name = request.data.get('name', '')
         phone = request.data.get('phone', '')
+        cep = request.data.get('cep', '')
         category_id = request.data.get('category')
         experience = request.data.get('experience', 0)
         description = request.data.get('description', '')
@@ -163,6 +276,15 @@ class BecomeProfessionalAPIView(APIView):
         prestador, created = PrestadorPerfil.objects.get_or_create(user=user)
         prestador.bio = description
         prestador.valor_hora = price
+        # Ensure a UserProfile exists and update telefone/cep
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        if phone:
+            profile.telefone = phone
+        if cep:
+            profile.cep = cep
+        profile.save()
+        if cep:
+            prestador.cep = cep
         prestador.anos_experiencia = int(experience)
         prestador.status_adesao = 'ATIVO'
         prestador.disponivel = True

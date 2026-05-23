@@ -1,0 +1,218 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HIVEE | Produtos</title>
+    <link rel="stylesheet" href="{% static 'css/marketplace.css' %}" />
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #111827;
+        color: #f9fafb;
+      }
+
+      .container {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .search-strip {
+        margin-top: 24px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+      }
+
+      .search-form {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .search-input {
+        flex: 1 1 320px;
+        min-width: 0;
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid #374151;
+        background: #0f172a;
+        color: #f9fafb;
+      }
+
+      .search-input::placeholder {
+        color: #9ca3af;
+      }
+
+      .search-button,
+      .search-clear {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 18px;
+        border-radius: 12px;
+        border: 0;
+        text-decoration: none;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .search-button {
+        background: #f5a623;
+        color: #111827;
+      }
+
+      .search-clear {
+        background: transparent;
+        color: #d1d5db;
+        border: 1px solid #374151;
+      }
+
+      .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        margin: 28px 0 64px;
+      }
+
+      .product-card {
+        background: #0f172a;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+      }
+
+      .product-image {
+        aspect-ratio: 4 / 3;
+        width: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .product-body {
+        padding: 18px;
+      }
+
+      .product-category {
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(245, 166, 35, 0.12);
+        color: #fbbf24;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .product-title {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+      }
+
+      .product-description {
+        margin: 0;
+        color: #cbd5e1;
+        line-height: 1.5;
+      }
+
+      .product-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 16px;
+        color: #e5e7eb;
+        font-size: 0.95rem;
+      }
+
+      .empty-state {
+        margin: 40px 0 72px;
+        padding: 36px 24px;
+        text-align: center;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .empty-state h2 {
+        margin: 0 0 8px;
+        font-size: 1.4rem;
+      }
+
+      .empty-state p {
+        margin: 0;
+        color: #cbd5e1;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <section class="hero-marketplace" style="border-radius: 0 0 28px 28px; margin-top: 24px;">
+        <div class="hero-content">
+          <span class="hero-badge">Marketplace HIVEE</span>
+          <h1 class="hero-title">Encontre produtos por nome, descrição ou categoria</h1>
+          <p class="hero-subtitle">Use a busca para localizar rapidamente o que você procura.</p>
+        </div>
+      </section>
+
+      <section class="search-strip">
+        <form class="search-form" method="get" action=".">
+          <input
+            class="search-input"
+            type="search"
+            name="q"
+            value="{{ termo_busca }}"
+            placeholder="Buscar produtos, descrições ou categorias"
+          />
+          <button class="search-button" type="submit">Buscar</button>
+          {% if termo_busca %}
+            <a class="search-clear" href="{% url 'servicos:listar_produtos' %}">Limpar</a>
+          {% endif %}
+        </form>
+      </section>
+
+      {% if produtos %}
+        <section class="products-grid">
+          {% for produto in produtos %}
+            <article class="product-card">
+              {% if produto.imagem_principal %}
+                <img
+                  class="product-image"
+                  src="{{ produto.imagem_principal.url }}"
+                  alt="{{ produto.nome }}"
+                  onerror="this.src='{% static 'img/no-image.png' %}'"
+                />
+              {% else %}
+                <img
+                  class="product-image"
+                  src="{% static 'img/no-image.png' %}"
+                  alt="{{ produto.nome }}"
+                />
+              {% endif %}
+              <div class="product-body">
+                <span class="product-category">{{ produto.categoria.nome }}</span>
+                <h2 class="product-title">{{ produto.nome }}</h2>
+                <p class="product-description">{{ produto.descricao|truncatechars:120 }}</p>
+                <div class="product-footer">
+                  <strong>R$ {{ produto.preco }}</strong>
+                  <span>{{ produto.estoque }} em estoque</span>
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </section>
+      {% else %}
+        <section class="empty-state">
+          <h2>
+            Nenhum produto encontrado{% if termo_busca %} para a busca '{{ termo_busca }}'{% endif %}
+          </h2>
+          <p>Tente refinar o termo ou buscar pelo nome da categoria.</p>
+        </section>
+      {% endif %}
+    </main>
+  </body>
+</html>

@@ -5,7 +5,7 @@ app_name = 'servicos'
 
 urlpatterns = [
     # Home do marketplace — vitrine de prestadores
-    path('', views.listar_prestadores, name='listar_prestadores'),
+    path('', views.listar_produtos, name='listar_produtos'),
     # Perfil público de um prestador
     path('prestador/<slug:slug>/', views.perfil_prestador, name='perfil_prestador'),
     # Solicitar serviço a um prestador específico
@@ -25,6 +25,8 @@ urlpatterns = [
     path('api/prestadores/<int:pk>/', views.PrestadorRetrieveAPIView.as_view(), name='api_prestador_detail'),
     path('api/login/', views.LoginAPIView.as_view(), name='api_login'),
     path('api/register/', views.RegisterAPIView.as_view(), name='api_register'),
+    path('api/logout/', views.LogoutAPIView.as_view(), name='api_logout'),
+    path('api/profile/', views.ProfileAPIView.as_view(), name='api_profile'),
     path('api/become-professional/', views.BecomeProfessionalAPIView.as_view(), name='api_become_professional'),
     path('api/post-demand/', views.PostDemandAPIView.as_view(), name='api_post_demand'),
     path('api/contratos/', views.ContratoListAPIView.as_view(), name='api_contratos'),

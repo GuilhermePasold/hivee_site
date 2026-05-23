@@ -12,6 +12,7 @@ export function BecomeProfessionalPage() {
     name: '',
     email: '',
     phone: '',
+    cep: '',
     category: '',
     experience: '',
     description: '',
@@ -38,6 +39,7 @@ export function BecomeProfessionalPage() {
             name: '',
             email: '',
             phone: '',
+            cep: '',
             category: '',
             experience: '',
             description: '',
@@ -142,6 +144,25 @@ export function BecomeProfessionalPage() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
+                  className="w-full px-4 py-2 bg-primary border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-secondary"
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cep"
+                  className="block text-sm font-medium text-white mb-2"
+                >
+                  CEP
+                </label>
+                <input
+                  type="text"
+                  id="cep"
+                  name="cep"
+                  value={formData.cep}
+                  onChange={handleChange}
+                  placeholder="00000-000"
                   className="w-full px-4 py-2 bg-primary border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-secondary"
                   required
                 />

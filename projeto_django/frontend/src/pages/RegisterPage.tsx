@@ -9,6 +9,7 @@ export function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [cep, setCep] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -18,7 +19,7 @@ export function RegisterPage() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, cep }),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -127,6 +128,28 @@ export function RegisterPage() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 <Lock className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="cep"
+                className="block text-sm font-medium text-white"
+              >
+                CEP
+              </label>
+              <div className="mt-1 relative">
+                <input
+                  id="cep"
+                  name="cep"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  placeholder="00000-000"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-secondary focus:border-secondary bg-primary text-white"
+                  value={cep}
+                  onChange={(e) => setCep(e.target.value)}
+                />
               </div>
             </div>
 

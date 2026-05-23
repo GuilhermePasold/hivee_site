@@ -21,10 +21,12 @@ class UserProfile(models.Model):
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='CLIENTE')
     cidade = models.CharField(max_length=100, blank=True, default='')
     estado = models.CharField(max_length=2, blank=True, default='')
+    cep = models.CharField(max_length=10, blank=True, default='')
     telefone = models.CharField(max_length=20, blank=True, default='')
     # Campos exclusivos de CLIENTE
     plano = models.CharField(max_length=10, choices=PLANO_CHOICES, default='NENHUM')
     servicos_usados_mes = models.PositiveIntegerField(default=0)
+    deleted = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'Perfil de Usuário'
@@ -101,6 +103,7 @@ class PrestadorPerfil(models.Model):
     valor_hora = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     cidade = models.CharField(max_length=100, default='')
     estado = models.CharField(max_length=2, default='')
+    cep = models.CharField(max_length=10, blank=True, default='')
     anos_experiencia = models.PositiveIntegerField(default=0)
     disponivel = models.BooleanField(default=True)
     # Monetização: taxa de adesão anual R$ 400,00
@@ -111,6 +114,7 @@ class PrestadorPerfil(models.Model):
     nota_media = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+    deleted = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'Perfil de Prestador'
@@ -192,6 +196,52 @@ class Contrato(models.Model):
 
 
 # ============================================================
+# LOJA / PRODUTOS
+# ============================================================
+class CategoriaProduto(models.Model):
+    nome = models.CharField(max_length=100)
+    slug = models.SlugField(unique=True)
+
+    class Meta:
+        managed = False
+        db_table = 'loja_categoria'
+        verbose_name = 'Categoria de Produto'
+        verbose_name_plural = 'Categorias de Produtos'
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class Produto(models.Model):
+    nome = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True)
+    descricao = models.TextField()
+    preco = models.DecimalField(max_digits=10, decimal_places=2)
+    estoque = models.IntegerField()
+    imagem_principal = models.ImageField(max_length=100)
+    disponivel = models.BooleanField(default=True)
+    criado = models.DateTimeField()
+    atualizado = models.DateTimeField()
+    categoria = models.ForeignKey(
+        CategoriaProduto,
+        on_delete=models.DO_NOTHING,
+        db_column='categoria_id',
+        related_name='produtos',
+    )
+
+    class Meta:
+        managed = False
+        db_table = 'loja_produto'
+        verbose_name = 'Produto'
+        verbose_name_plural = 'Produtos'
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+# ============================================================
 # AVALIAÇÃO DO PRESTADOR
 # ============================================================
 class Avaliacao(models.Model):
@@ -211,3 +261,13 @@ class Avaliacao(models.Model):
 
     def __str__(self):
         return f'{self.estrelas}★ para {self.prestador} por {self.cliente.username}'
+
+
+class Session(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sessions')
+    token = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expired = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'Session {self.user.username} ({"expired" if self.expired else "active"})'
