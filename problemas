@@ -1,0 +1,7 @@
+1-Role para descobrir deveria ir até o final da tela
+2-Tela do "Do problema ao
+profissional certo." - Não faz sentido
+3-dropdown menu de cidades fica "cortado" e atras do card de prestador
+4-Sistema de busca ainda é "burro".O ideal seria só aparecer prestadores depois de confirmação da cidade, para não dar problemas
+5-Não existe simplesmente ter uma parte no menu la de "Sou profissional", isso é porquice, o que eu quero nesse menu é: Início, Buscar e Meu Perfil. O Perfil é diferente pra quem tem cadastro de prestador pra quem tem cadastro normal.
+6-Resolver problemas de lag

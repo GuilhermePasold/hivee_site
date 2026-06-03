@@ -1,0 +1,36 @@
+{% extends "templates/base.html" %}
+
+{% block content %}
+<section class="detail-hero">
+  <p class="muted">{{ provider.category.name }} | {{ provider.city }}{% if provider.state %}/{{ provider.state }}{% endif %}</p>
+  <h1>{{ provider.name }}</h1>
+  <p>{{ provider.headline }}</p>
+  <img class="detail-cover" src="{{ provider.cover_url|default:provider.avatar_url }}" alt="{{ provider.name }}">
+</section>
+
+<section class="detail-layout">
+  <article class="detail-panel">
+    <h2>Sobre</h2>
+    <p>{{ provider.bio }}</p>
+    <p class="meta">Habilidades: {{ provider.skills|join:", " }}</p>
+
+    {% if imagens_adicionais %}
+      <h2>Galeria</h2>
+      <div class="gallery">
+        {% for imagem in imagens_adicionais %}
+          <img src="{{ imagem.image.url }}" alt="{{ imagem.alt_text|default:provider.name }}">
+        {% endfor %}
+      </div>
+    {% endif %}
+  </article>
+
+  <aside class="detail-panel">
+    <h2>Resumo</h2>
+    <p class="price">R$ {{ provider.hourly_rate }}/hora</p>
+    <p>{{ provider.rating }} estrelas com {{ provider.reviews_count }} avaliacoes</p>
+    <p>{{ provider.jobs_done }} servicos feitos</p>
+    <p>{{ provider.response_time }} | {{ provider.availability }}</p>
+    <a class="button" href="mailto:contato@hivee.local">Solicitar contato</a>
+  </aside>
+</section>
+{% endblock %}

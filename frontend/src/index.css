@@ -1,0 +1,182 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+@import "tailwindcss";
+
+/* ===========================================================================
+   HIVEE design tokens (shadcn-compatible: background/foreground/muted)
+   Dark, modern, gold accent. Glass kept light for 60fps.
+   =========================================================================== */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* One single family across the whole site (matches the cinematic intro). */
+  --font-display: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+  --color-muted: #18181b;
+  --color-muted-foreground: #a1a1aa;
+  --color-card: #111114;
+  --color-border: rgba(255, 255, 255, 0.1);
+
+  --color-gold-300: #fde68a;
+  --color-gold-400: #facc15;
+  --color-gold-500: #eab308;
+  --color-gold-600: #ca8a04;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+    -webkit-tap-highlight-color: transparent;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    margin: 0;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  ::selection {
+    background: rgba(234, 179, 8, 0.3);
+    color: #fff;
+  }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(234, 179, 8, 0.4);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+}
+
+@layer components {
+  /* Chrome elements (navbar, search bar, dialogs). The navbar is FIXED and the
+     search bar scrolls — a backdrop-filter on either repaints the blur on every
+     scroll frame (the main scroll-jank culprit), so we use a dark translucent
+     tint instead. Looks like glass, costs nothing to scroll. */
+  .glass {
+    position: relative;
+    background: rgba(24, 24, 30, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 16px 44px -24px rgba(0, 0, 0, 0.85);
+  }
+  /* Cards: milky liquid-glass LOOK via a white translucent tint + bright bevel.
+     No backdrop-filter — over the near-black background the blur had nothing to
+     sample, so dropping it looks identical and keeps big grids at 60fps. */
+  .surface {
+    position: relative;
+    /* glossy milky gradient: brighter at the top-left where the beam hits */
+    background: linear-gradient(150deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05) 55%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow:
+      inset 2px 2px 2px rgba(255, 255, 255, 0.4),
+      inset -2px -2px 2px rgba(0, 0, 0, 0.35),
+      inset 0 0 30px rgba(255, 255, 255, 0.05),
+      0 18px 50px -26px rgba(0, 0, 0, 0.9);
+  }
+
+  /* Opaque dark card for the stacked deck + dropdown. Solid (no backdrop-filter)
+     so the 3 deck cards on the home page don't repaint a blur while scrolling. */
+  .glass-solid {
+    position: relative;
+    background: linear-gradient(150deg, rgba(32, 32, 40, 0.97), rgba(14, 14, 18, 0.98));
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 30px 70px -30px rgba(0, 0, 0, 0.95);
+  }
+
+  /* Single unified backdrop: pure black with one faint warm spotlight up top.
+     No colors — the "light" lives on the glass elements, not the background. */
+  /* A single clean directional light beam from the top (like the dark-glass
+     reference) — gives the glass something to catch. No random blobs. */
+  .bg-mesh {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      linear-gradient(125deg, rgba(255, 255, 255, 0.055) 0%, transparent 28%),
+      radial-gradient(45% 32% at 72% -8%, rgba(234, 179, 8, 0.07), transparent 62%);
+  }
+  .card-hover {
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.35s ease, box-shadow 0.35s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-6px);
+    border-color: rgba(234, 179, 8, 0.4);
+    box-shadow: 0 30px 60px -25px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(234, 179, 8, 0.2);
+  }
+  .text-gold {
+    background: linear-gradient(110deg, #fde68a, #facc15 45%, #ca8a04);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .btn-gold {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(180deg, #facc15, #ca8a04);
+    color: #1a1408;
+    font-weight: 600;
+    border-radius: 999px;
+    box-shadow: 0 8px 24px -8px rgba(234, 179, 8, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+    cursor: pointer;
+  }
+  .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 14px 32px -8px rgba(234, 179, 8, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    border-radius: 999px; border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.04); color: var(--color-foreground);
+    transition: border-color 0.25s ease, background 0.25s ease; cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: rgba(234,179,8,0.5); background: rgba(255,255,255,0.07); }
+}
+
+/* Leaflet dark */
+.leaflet-container { background: #0c0c0e !important; font-family: var(--font-sans); }
+.leaflet-tile { filter: brightness(0.65) saturate(0.85) contrast(1.05); }
+.leaflet-control-attribution {
+  background: rgba(9, 9, 11, 0.8) !important;
+  color: rgba(161, 161, 170, 0.8) !important;
+}
+.leaflet-control-attribution a { color: rgba(234, 179, 8, 0.85) !important; }
+.leaflet-bar a {
+  background: rgba(17, 17, 20, 0.9) !important;
+  color: #fafafa !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Gentle float — runs on the compositor (transform only), so it never competes
+   with scroll on the main thread the way a JS/framer-motion loop would. */
+@keyframes hivee-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.animate-float {
+  animation: hivee-float 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

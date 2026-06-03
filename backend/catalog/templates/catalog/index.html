@@ -1,0 +1,33 @@
+{% extends "templates/base.html" %}
+
+{% block content %}
+<section class="hero">
+  <p class="muted">Marketplace HIVEE</p>
+  <h1>Encontre prestadores de servico perto de voce.</h1>
+  <p class="muted">Busca real por nome, categoria, cidade, bairro e habilidades.</p>
+</section>
+
+<section class="category-row" aria-label="Categorias">
+  {% for category in categories %}
+    <span class="pill">{{ category.name }}</span>
+  {% endfor %}
+</section>
+
+<section class="grid">
+  {% for provider in providers %}
+    <article class="card">
+      <img src="{{ provider.avatar_url }}" alt="{{ provider.name }}">
+      <div>
+        <p class="meta">{{ provider.category.name }} em {{ provider.city }}{% if provider.state %}/{{ provider.state }}{% endif %}</p>
+        <h2>{{ provider.name }}</h2>
+        <p>{{ provider.headline }}</p>
+      </div>
+      <div class="meta">{{ provider.rating }} estrelas | {{ provider.reviews_count }} avaliacoes</div>
+      <div class="price">R$ {{ provider.hourly_rate }}/hora</div>
+      <a class="button" href="{% url 'catalog:detalhe_prestador' provider.slug %}">Ver detalhes</a>
+    </article>
+  {% empty %}
+    <p class="muted">Nenhum prestador encontrado para esta busca.</p>
+  {% endfor %}
+</section>
+{% endblock %}

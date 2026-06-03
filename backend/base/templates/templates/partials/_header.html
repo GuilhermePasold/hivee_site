@@ -1,0 +1,15 @@
+<header class="site-header">
+  <a class="brand" href="{% url 'catalog:listar_prestadores' %}">HIVEE</a>
+  {% if mostrar_busca %}
+    <form class="search-form" method="get" action="{% url 'catalog:listar_prestadores' %}">
+      <input type="search" name="q" value="{{ query }}" placeholder="Buscar prestador, cidade ou categoria">
+      <button type="submit">Buscar</button>
+    </form>
+  {% endif %}
+  <nav class="nav-links">
+    <a href="{% url 'catalog:listar_prestadores' %}">Prestadores</a>
+    <a href="{% url 'catalog:cadastrar_cliente' %}">Cadastrar</a>
+    <a href="{% url 'catalog:login_cliente' %}">Entrar</a>
+    <a href="{% url 'catalog:editar_perfil' %}">Perfil</a>
+  </nav>
+</header>

@@ -1,0 +1,19 @@
+{% extends "templates/base.html" %}
+
+{% block content %}
+<section class="form-panel">
+  <h1>Meu perfil</h1>
+  <p class="muted">CPF protegido: {{ cliente.cpf }}</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Salvar perfil</button>
+    <a class="button secondary" href="{% url 'catalog:logout_cliente' %}">Sair</a>
+  </form>
+
+  <form method="post" action="{% url 'catalog:deletar_conta' %}" data-confirm="Deseja mesmo desativar sua conta?">
+    {% csrf_token %}
+    <button class="button danger" type="submit">Desativar conta</button>
+  </form>
+</section>
+{% endblock %}

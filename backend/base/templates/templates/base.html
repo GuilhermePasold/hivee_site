@@ -1,0 +1,25 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ titulo_aba|default:"HIVEE MTV" }}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  {% include "templates/partials/_header.html" %}
+  <main class="page-shell">
+    {% if messages %}
+      <div class="alerts">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  {% include "templates/partials/_footer.html" %}
+  <script src="{% static 'scripts/main.js' %}"></script>
+</body>
+</html>

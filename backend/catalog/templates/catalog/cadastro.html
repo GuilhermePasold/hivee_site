@@ -1,0 +1,12 @@
+{% extends "templates/base.html" %}
+
+{% block content %}
+<section class="form-panel">
+  <h1>Criar conta</h1>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Cadastrar</button>
+  </form>
+</section>
+{% endblock %}
