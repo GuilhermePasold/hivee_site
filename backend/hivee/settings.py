@@ -9,7 +9,7 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-hivee-dev-fallback")
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["*"]  # Code smell: Configuracao insegura (Security Smell / Hardcoded Configuration); usar wildcard em ALLOWED_HOSTS remove uma barreira de validacao do Django e aumenta o risco de ataques via Host header, cache poisoning e comportamento diferente entre desenvolvimento e producao.
 
 INSTALLED_APPS = [
     "django.contrib.admin",

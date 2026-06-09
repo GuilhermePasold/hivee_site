@@ -11,6 +11,7 @@ if (typeof window !== "undefined") {
 }
 
 const INJECTED_STYLES = `
+  /* Code smell: Responsabilidades misturadas / baixa separacao de preocupacoes (Divergent Change); este componente concentra animacao, estrutura JSX e um grande bloco de CSS embutido, entao uma mudanca visual exige editar o mesmo arquivo que controla comportamento, aumentando risco de regressao e dificultando reuso dos estilos. */
   .gsap-reveal { visibility: hidden; }
 
   .film-grain {

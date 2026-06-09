@@ -11,7 +11,7 @@ import { api } from "@/lib/api";
 import { BRL } from "@/lib/utils";
 import type { Category, PlatformStats, Recommendation } from "@/types";
 
-const SP = { lat: -23.5613, lng: -46.6565 };
+const SP = { lat: -23.5613, lng: -46.6565 }; // Code smell: Dado hardcoded / Primitive Obsession de localizacao; coordenadas fixas de Sao Paulo ficam acopladas a pagina inicial, fazendo recomendacoes parecerem personalizadas quando na verdade ignoram a localizacao real do usuario ou uma configuracao central.
 
 export default function Home() {
   const navigate = useNavigate();

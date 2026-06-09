@@ -14,7 +14,7 @@ const TOKEN_KEY = "hivee_token";
 
 export function getToken(): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY); // Code smell: Armazenamento inseguro de credencial (Security Smell); manter token de autenticacao em localStorage facilita roubo por XSS, pois qualquer script executado na pagina pode ler o token e reutiliza-lo como se fosse o usuario.
   } catch {
     return null;
   }

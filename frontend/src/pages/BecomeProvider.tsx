@@ -52,7 +52,7 @@ export default function BecomeProvider() {
     setLoading(true);
     try {
       // Resolve coordinates for the chosen city/neighborhood via OpenStreetMap.
-      let lat = -23.5613;
+      let lat = -23.5613; // Code smell: Fallback silencioso / tratamento de erro oculto; quando o geocoder nao encontra endereco, o fluxo continua com coordenadas padrao de Sao Paulo sem informar o usuario, gerando dados incorretos e tornando o problema dificil de diagnosticar depois.
       let lng = -46.6565;
       const found = await searchAddress(`${form.neighborhood}, ${form.city}`);
       if (found[0]) {

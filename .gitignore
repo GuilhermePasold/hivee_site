@@ -12,3 +12,5 @@ frontend/.vite/
 # Misc
 .DS_Store
 *.log
+.claude/
+frontend/_shots/

@@ -53,7 +53,7 @@ class CategoryListView(ListAPIView):
 class ProviderViewSet(ViewSet):
     lookup_field = "slug"
 
-    def _filtered(self, request):
+    def _filtered(self, request):  # Code smell: Metodo longo / baixa coesao (Long Method); esta funcao concentra filtragem, busca textual, calculo de distancia, parsing de parametros e ordenacao, o que dificulta testes unitarios, reuso parcial e manutencao quando uma regra de busca muda.
         qs = Provider.objects.select_related("category").all()
         category = request.query_params.get("category")
         if category:
@@ -237,7 +237,7 @@ def _score(provider):
     reviews = provider.reviews_count
     dist = provider.distance_km
 
-    rating_pts = (rating / 5.0) * 42
+    rating_pts = (rating / 5.0) * 42  # Code smell: Numeros magicos (Magic Numbers); os pesos da recomendacao aparecem como constantes anonimas, entao nao fica claro por que 42 vale mais que 16 ou 10, dificultando calibragem, auditoria da regra de negocio e testes com cenarios previsiveis.
     review_pts = min(reviews / 300.0, 1.0) * 16
     jobs_pts = min(provider.jobs_done / 600.0, 1.0) * 10
     verified_pts = 8 if provider.verified else 0
