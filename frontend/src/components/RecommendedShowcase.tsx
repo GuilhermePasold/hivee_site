@@ -105,7 +105,7 @@ export default function RecommendedShowcase({ recs }: { recs: Recommendation[] }
                   <b>{top.rating.toFixed(1)}</b> ({top.reviews_count})
                 </span>
                 <span className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4 text-gold-300" /> {top.neighborhood}
+                  <MapPin className="h-4 w-4 text-gold-300" /> {top.neighborhood || top.city || "Sem endereço"}
                 </span>
               </div>
               <p className="mt-4 rounded-2xl border border-white/15 bg-white/[0.06] p-3 text-sm leading-relaxed text-foreground/85">

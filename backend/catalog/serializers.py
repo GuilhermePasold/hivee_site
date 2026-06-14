@@ -51,7 +51,7 @@ class ProviderSerializer(serializers.ModelSerializer):
             "member_since",
         ]
 
-    def get_distance_km(self, obj):
+    def get_distance_km(self, obj) -> float | None:
         # `distance_km` is attached by the view when a location is provided.
         value = getattr(obj, "distance_km", None)
         return round(value, 2) if value is not None else None
@@ -74,10 +74,10 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "username", "email", "first_name", "is_provider", "provider_slug"]
 
-    def get_is_provider(self, obj):
+    def get_is_provider(self, obj) -> bool:
         return obj.provider_profiles.exists()
 
-    def get_provider_slug(self, obj):
+    def get_provider_slug(self, obj) -> str | None:
         profile = obj.provider_profiles.first()
         return profile.slug if profile else None
 
@@ -106,6 +106,12 @@ class ProviderWriteSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         slug_field="slug", queryset=Category.objects.all()
     )
+    avatar_url = serializers.URLField(required=False, allow_blank=True)
+    city = serializers.CharField(required=False, allow_blank=True, default="")
+    neighborhood = serializers.CharField(required=False, allow_blank=True, default="")
+    state = serializers.CharField(required=False, allow_blank=True, default="")
+    latitude = serializers.FloatField(required=False, allow_null=True)
+    longitude = serializers.FloatField(required=False, allow_null=True)
 
     class Meta:
         model = Provider

@@ -1,16 +1,26 @@
+# --- Itens que NAO sobem (gerados na maquina ou contem caminhos absolutos) ---
+
 # Python / Django
+# venv: recriado com `python -m venv`; static_files: saida de collectstatic
 backend/venv/
 backend/**/__pycache__/
-backend/*.db
-backend/.env
+backend/static_files/
 
 # Node / Vite
+# node_modules: `npm install`; dist: `npm run build`
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+
+# Segredos locais (use backend/.env.example como modelo)
+backend/.env
 
 # Misc
 .DS_Store
 *.log
 .claude/
 frontend/_shots/
+
+# --- O que SOBE de proposito (para o professor rodar sem configurar nada) ---
+# backend/hivee.db       -> banco SQLite ja populado pelo seed
+# backend/.env.example   -> modelo das variaveis de ambiente

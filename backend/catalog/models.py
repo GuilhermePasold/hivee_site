@@ -52,11 +52,11 @@ class Provider(models.Model):
     hourly_rate = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     currency = models.CharField(max_length=3, default="BRL")
 
-    city = models.CharField(max_length=80)
-    neighborhood = models.CharField(max_length=80, blank=True)
-    state = models.CharField(max_length=2, blank=True)
-    latitude = models.FloatField()
-    longitude = models.FloatField()
+    city = models.CharField(max_length=80, blank=True, default="")
+    neighborhood = models.CharField(max_length=80, blank=True, default="")
+    state = models.CharField(max_length=2, blank=True, default="")
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
 
     verified = models.BooleanField(default=False)
     top_rated = models.BooleanField(default=False)

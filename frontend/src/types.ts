@@ -22,11 +22,11 @@ export interface Provider {
   jobs_done: number;
   hourly_rate: number;
   currency: string;
-  city: string;
-  neighborhood: string;
-  state: string;
-  latitude: number;
-  longitude: number;
+  city?: string;
+  neighborhood?: string;
+  state?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   distance_km: number | null;
   verified: boolean;
   top_rated: boolean;

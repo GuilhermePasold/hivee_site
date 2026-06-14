@@ -1,10 +1,13 @@
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.db.models import Avg, Count, Sum
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
@@ -35,9 +38,25 @@ def _attach_distance(providers, lat, lng):
         provider.distance_km = (
             haversine_km(lat, lng, provider.latitude, provider.longitude)
             if lat is not None and lng is not None
+            and provider.latitude is not None and provider.longitude is not None
             else None
         )
     return providers
+
+
+def _matches_terms(provider, terms):
+    """True quando todos os termos da busca aparecem nos campos do prestador."""
+    haystack = " ".join(
+        [
+            provider.name,
+            provider.headline,
+            provider.category.name,
+            provider.city or "",
+            provider.neighborhood or "",
+            " ".join(provider.skills),
+        ]
+    ).lower()
+    return all(term in haystack for term in terms)
 
 
 class CategoryListView(ListAPIView):
@@ -50,62 +69,97 @@ class CategoryListView(ListAPIView):
         )
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista prestadores (filtravel e paginada)",
+        parameters=[
+            OpenApiParameter("category", str, description="Slug da categoria."),
+            OpenApiParameter("city", str, description="Filtra por cidade."),
+            OpenApiParameter("search", str, description="Busca textual livre."),
+            OpenApiParameter(
+                "ordering", str, description="distance | -rating | hourly_rate"
+            ),
+            OpenApiParameter("lat", float, description="Latitude do usuario."),
+            OpenApiParameter("lng", float, description="Longitude do usuario."),
+            OpenApiParameter("page", int),
+            OpenApiParameter("page_size", int),
+        ],
+        responses=ProviderSerializer(many=True),
+    ),
+    retrieve=extend_schema(
+        summary="Detalhe de um prestador",
+        parameters=[
+            OpenApiParameter(
+                "slug", str, location=OpenApiParameter.PATH,
+                description="Slug unico do prestador.",
+            )
+        ],
+        responses=ProviderSerializer,
+    ),
+    create=extend_schema(
+        summary="Cadastra um prestador (requer autenticacao)",
+        request=ProviderWriteSerializer,
+        responses=ProviderSerializer,
+    ),
+    recommended=extend_schema(
+        summary="Top 8 prestadores recomendados",
+        responses=RecommendationSerializer(many=True),
+    ),
+)
 class ProviderViewSet(ViewSet):
+    # Smell fix (passo a passo do DRF): superusuarios/usuarios autenticados podem
+    # escrever (POST), os demais so podem ler (GET). Substitui o controle manual
+    # de autenticacao que existia dentro de create().
+    serializer_class = ProviderSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = "slug"
 
-    def _filtered(self, request):  # Code smell: Metodo longo / baixa coesao (Long Method); esta funcao concentra filtragem, busca textual, calculo de distancia, parsing de parametros e ordenacao, o que dificulta testes unitarios, reuso parcial e manutencao quando uma regra de busca muda.
+    # Smell fix: o antigo `_filtered` concentrava filtro de banco, busca textual,
+    # distancia e ordenacao. Foi quebrado em passos coesos e testaveis abaixo.
+    def _filtered(self, request):
+        items = list(self._base_queryset(request))
+        items = self._apply_search(items, request)
+        lat, lng = _parse_point(request)
+        _attach_distance(items, lat, lng)
+        self._sort(items, request, has_location=lat is not None)
+        return items
+
+    @staticmethod
+    def _base_queryset(request):
+        """Filtros que o banco resolve: categoria e cidade."""
         qs = Provider.objects.select_related("category").all()
         category = request.query_params.get("category")
         if category:
             qs = qs.filter(category__slug=category)
-
         city = request.query_params.get("city")
         if city:
             qs = qs.filter(city__icontains=city)
+        return qs
 
-        items = list(qs)
+    @staticmethod
+    def _apply_search(items, request):
+        """Busca textual livre por todos os termos informados."""
         search = (request.query_params.get("search") or "").strip().lower()
-        if search:
-            terms = search.split()
+        if not search:
+            return items
+        terms = search.split()
+        return [p for p in items if _matches_terms(p, terms)]
 
-            def matches(provider):
-                haystack = " ".join(
-                    [
-                        provider.name,
-                        provider.headline,
-                        provider.category.name,
-                        provider.city,
-                        provider.neighborhood,
-                        " ".join(provider.skills),
-                    ]
-                ).lower()
-                return all(term in haystack for term in terms)
-
-            items = [provider for provider in items if matches(provider)]
-
-        lat, lng = _parse_point(request)
-        _attach_distance(items, lat, lng)
-
+    @staticmethod
+    def _sort(items, request, has_location):
+        """Ordenacao em memoria conforme o parametro `ordering`."""
         ordering = request.query_params.get("ordering", "")
-        if ordering == "distance" and lat is not None:
-            items.sort(key=lambda provider: provider.distance_km)
+        if ordering == "distance" and has_location:
+            items.sort(key=lambda p: p.distance_km)
         elif ordering == "-rating":
-            items.sort(
-                key=lambda provider: (float(provider.rating), provider.reviews_count),
-                reverse=True,
-            )
+            items.sort(key=lambda p: (float(p.rating), p.reviews_count), reverse=True)
         elif ordering == "hourly_rate":
-            items.sort(key=lambda provider: float(provider.hourly_rate))
+            items.sort(key=lambda p: float(p.hourly_rate))
         else:
             items.sort(
-                key=lambda provider: (
-                    provider.top_rated,
-                    float(provider.rating),
-                    provider.reviews_count,
-                ),
+                key=lambda p: (p.top_rated, float(p.rating), p.reviews_count),
                 reverse=True,
             )
-        return items
 
     def list(self, request):
         items = self._filtered(request)
@@ -156,11 +210,7 @@ class ProviderViewSet(ViewSet):
         return Response(RecommendationSerializer(scored[:8], many=True).data)
 
     def create(self, request):
-        if not request.user.is_authenticated:
-            return Response(
-                {"detail": "Entre na sua conta para se cadastrar como profissional."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+        # A autenticacao ja e garantida por IsAuthenticatedOrReadOnly.
         serializer = ProviderWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         provider = serializer.save(owner=request.user, verified=False)
@@ -170,9 +220,14 @@ class ProviderViewSet(ViewSet):
 
 
 class CitiesView(APIView):
+    @extend_schema(
+        summary="Cidades distintas com contagem de prestadores",
+        responses=OpenApiTypes.OBJECT,
+    )
     def get(self, request):
         rows = (
-            Provider.objects.values("city", "state")
+            Provider.objects.exclude(city="")
+            .values("city", "state")
             .annotate(count=Count("id"))
             .order_by("-count", "city")
         )
@@ -184,19 +239,44 @@ class CitiesView(APIView):
         )
 
 
+def _auth_response(user, http_status=status.HTTP_200_OK):
+    """Monta a resposta de login/cadastro: token no corpo (clientes de API)
+    E num cookie httpOnly (navegador), conforme o smell fix #2."""
+    token, _ = Token.objects.get_or_create(user=user)
+    response = Response(
+        {"token": token.key, "user": UserSerializer(user).data},
+        status=http_status,
+    )
+    response.set_cookie(
+        settings.AUTH_COOKIE_NAME,
+        token.key,
+        max_age=settings.AUTH_COOKIE_MAX_AGE,
+        httponly=True,
+        secure=settings.AUTH_COOKIE_SECURE,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+    )
+    return response
+
+
 class RegisterView(APIView):
+    @extend_schema(
+        summary="Cria uma conta e devolve o token de autenticacao",
+        request=RegisterSerializer,
+        responses=OpenApiTypes.OBJECT,
+    )
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response(
-            {"token": token.key, "user": UserSerializer(user).data},
-            status=status.HTTP_201_CREATED,
-        )
+        return _auth_response(user, http_status=status.HTTP_201_CREATED)
 
 
 class LoginView(APIView):
+    @extend_schema(
+        summary="Autentica por e-mail/senha e devolve o token",
+        request=OpenApiTypes.OBJECT,
+        responses=OpenApiTypes.OBJECT,
+    )
     def post(self, request):
         email = request.data.get("email", "")
         password = request.data.get("password", "")
@@ -206,21 +286,38 @@ class LoginView(APIView):
                 {"detail": "E-mail ou senha invalidos."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response({"token": token.key, "user": UserSerializer(user).data})
+        return _auth_response(user)
+
+
+class LogoutView(APIView):
+    @extend_schema(
+        summary="Encerra a sessao limpando o cookie de token",
+        request=None,
+        responses={204: None},
+    )
+    def post(self, request):
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        response.delete_cookie(settings.AUTH_COOKIE_NAME)
+        return response
 
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Usuario autenticado no momento", responses=UserSerializer
+    )
     def get(self, request):
         return Response(UserSerializer(request.user).data)
 
 
 class StatsView(APIView):
+    @extend_schema(
+        summary="Totais da plataforma", responses=OpenApiTypes.OBJECT
+    )
     def get(self, request):
         agg = Provider.objects.aggregate(avg=Avg("rating"), jobs=Sum("jobs_done"))
-        cities = Provider.objects.values_list("city", flat=True).distinct().count()
+        cities = Provider.objects.exclude(city="").values_list("city", flat=True).distinct().count()
         return Response(
             {
                 "providers": Provider.objects.count(),
@@ -232,23 +329,43 @@ class StatsView(APIView):
         )
 
 
+# Smell fix: pesos da recomendacao com nomes explicativos no lugar de numeros
+# magicos espalhados. Centralizar facilita calibrar, auditar e testar a regra.
+MAX_RATING = 5.0
+RATING_WEIGHT = 42  # peso da nota media do prestador
+REVIEWS_WEIGHT = 16  # peso do volume de avaliacoes
+REVIEWS_SATURATION = 300  # acima disso, mais avaliacoes nao somam pontos
+JOBS_WEIGHT = 10  # peso dos servicos concluidos
+JOBS_SATURATION = 600  # acima disso, mais servicos nao somam pontos
+VERIFIED_BONUS = 8  # bonus fixo para perfil verificado
+DISTANCE_WEIGHT = 24  # peso da proximidade do usuario
+DISTANCE_RADIUS_KM = 30.0  # raio em que a distancia ainda pontua
+DISTANCE_UNKNOWN_PTS = 14  # pontuacao neutra quando nao ha localizacao
+MIN_SCORE = 40
+MAX_SCORE = 99
+
+
 def _score(provider):
     rating = float(provider.rating)
     reviews = provider.reviews_count
     dist = provider.distance_km
 
-    rating_pts = (rating / 5.0) * 42  # Code smell: Numeros magicos (Magic Numbers); os pesos da recomendacao aparecem como constantes anonimas, entao nao fica claro por que 42 vale mais que 16 ou 10, dificultando calibragem, auditoria da regra de negocio e testes com cenarios previsiveis.
-    review_pts = min(reviews / 300.0, 1.0) * 16
-    jobs_pts = min(provider.jobs_done / 600.0, 1.0) * 10
-    verified_pts = 8 if provider.verified else 0
-    dist_pts = max(0.0, 1.0 - dist / 30.0) * 24 if dist is not None else 14
+    rating_pts = (rating / MAX_RATING) * RATING_WEIGHT
+    review_pts = min(reviews / REVIEWS_SATURATION, 1.0) * REVIEWS_WEIGHT
+    jobs_pts = min(provider.jobs_done / JOBS_SATURATION, 1.0) * JOBS_WEIGHT
+    verified_pts = VERIFIED_BONUS if provider.verified else 0
+    dist_pts = (
+        max(0.0, 1.0 - dist / DISTANCE_RADIUS_KM) * DISTANCE_WEIGHT
+        if dist is not None
+        else DISTANCE_UNKNOWN_PTS
+    )
     score = round(rating_pts + review_pts + jobs_pts + verified_pts + dist_pts)
-    score = max(40, min(99, score))
+    score = max(MIN_SCORE, min(MAX_SCORE, score))
 
     parts = [f"Nota {rating:.1f}"]
     if reviews:
         parts.append(f"{reviews} avaliacoes")
-    if dist is not None and dist <= 30:
+    if dist is not None and dist <= DISTANCE_RADIUS_KM:
         parts.append(f"a {dist:.1f} km de voce")
     parts.append(f"responde {provider.response_time}")
     return score, "Recomendado por " + ", ".join(parts) + "."

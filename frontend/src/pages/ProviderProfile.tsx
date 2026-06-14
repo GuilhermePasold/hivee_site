@@ -91,9 +91,15 @@ export default function ProviderProfile() {
                 <span className="flex items-center gap-1.5">
                   <Icon name={p.category.icon} className="h-4 w-4 text-gold-400" /> {p.category.name}
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-gold-400" /> {p.neighborhood}, {p.city} - {p.state}
-                </span>
+                {p.latitude && p.longitude ? (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 text-gold-400" /> {p.neighborhood}, {p.city} - {p.state}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-muted-foreground/50 italic">
+                    <MapPin className="h-4 w-4 text-muted-foreground/50" /> Sem endereço cadastrado
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5 text-gold-300">{p.availability}</span>
               </div>
             </div>
@@ -132,22 +138,28 @@ export default function ProviderProfile() {
 
           {/* Map + contact */}
           <div className="flex flex-col gap-6">
-            <div className="surface overflow-hidden rounded-3xl p-1.5">
-              <div className="h-56 overflow-hidden rounded-[1.4rem]">
-                <MapContainer
-                  center={[p.latitude, p.longitude]}
-                  zoom={13}
-                  scrollWheelZoom={false}
-                  style={{ height: "100%", width: "100%" }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  <Marker position={[p.latitude, p.longitude]} icon={pin(p.avatar_url)} />
-                </MapContainer>
+            {p.latitude && p.longitude ? (
+              <div className="surface overflow-hidden rounded-3xl p-1.5">
+                <div className="h-56 overflow-hidden rounded-[1.4rem]">
+                  <MapContainer
+                    center={[p.latitude, p.longitude]}
+                    zoom={13}
+                    scrollWheelZoom={false}
+                    style={{ height: "100%", width: "100%" }}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <Marker position={[p.latitude, p.longitude]} icon={pin(p.avatar_url)} />
+                  </MapContainer>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="surface flex h-56 items-center justify-center rounded-3xl">
+                <p className="text-sm italic text-muted-foreground/50">Sem endereço cadastrado</p>
+              </div>
+            )}
 
             <div className="surface flex flex-col gap-3 rounded-3xl p-6">
               <button className="btn-gold w-full py-3.5 text-base">

@@ -10,23 +10,10 @@ import type {
 } from "@/types";
 
 const BASE = "/api";
-const TOKEN_KEY = "hivee_token";
 
-export function getToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY); // Code smell: Armazenamento inseguro de credencial (Security Smell); manter token de autenticacao em localStorage facilita roubo por XSS, pois qualquer script executado na pagina pode ler o token e reutiliza-lo como se fosse o usuario.
-  } catch {
-    return null;
-  }
-}
-export function setToken(token: string | null) {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    /* ignore */
-  }
-}
+// Smell fix #2: o token NAO fica mais em localStorage (legivel por XSS). Ele
+// vive num cookie httpOnly definido pelo servidor; o navegador o envia
+// sozinho quando usamos `credentials: "include"`. O JavaScript nunca o ve.
 
 async function request<T>(
   path: string,
@@ -39,13 +26,12 @@ async function request<T>(
     }
   }
   const headers: Record<string, string> = { Accept: "application/json" };
-  const token = getToken();
-  if (token) headers.Authorization = `Token ${token}`;
   if (opts.body) headers["Content-Type"] = "application/json";
 
   const res = await fetch(url.toString(), {
     method: opts.method ?? "GET",
     headers,
+    credentials: "include", // envia/recebe o cookie httpOnly de autenticacao
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
   if (!res.ok) {
@@ -80,11 +66,11 @@ export interface ProviderInput {
   category: string;
   avatar_url?: string;
   hourly_rate: number;
-  city: string;
-  neighborhood: string;
-  state: string;
-  latitude: number;
-  longitude: number;
+  city?: string;
+  neighborhood?: string;
+  state?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   response_time: string;
   availability: string;
   skills: string[];
@@ -108,5 +94,6 @@ export const api = {
     request<AuthResponse>("/auth/register/", { method: "POST", body }),
   login: (body: { email: string; password: string }) =>
     request<AuthResponse>("/auth/login/", { method: "POST", body }),
+  logout: () => request<void>("/auth/logout/", { method: "POST" }),
   me: () => request<User>("/auth/me/"),
 };

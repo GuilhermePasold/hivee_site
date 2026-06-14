@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, getToken, setToken } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { User } from "@/types";
 
 interface AuthCtx {
@@ -7,7 +7,7 @@ interface AuthCtx {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -17,34 +17,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!getToken()) {
-      setLoading(false);
-      return;
-    }
+    // O token vive num cookie httpOnly: nao da pra le-lo aqui. Perguntamos ao
+    // servidor quem esta logado; um 401 simplesmente significa "ninguem".
     api
       .me()
       .then(setUser)
-      .catch(() => {
-        setToken(null);
-        setUser(null);
-      })
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
   async function login(email: string, password: string) {
     const res = await api.login({ email, password });
-    setToken(res.token);
     setUser(res.user);
   }
 
   async function register(name: string, email: string, password: string) {
     const res = await api.register({ name, email, password });
-    setToken(res.token);
     setUser(res.user);
   }
 
-  function logout() {
-    setToken(null);
+  async function logout() {
+    await api.logout().catch(() => undefined);
     setUser(null);
   }
 

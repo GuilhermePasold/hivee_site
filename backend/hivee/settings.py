@@ -9,7 +9,13 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-hivee-dev-fallback")
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
-ALLOWED_HOSTS = ["*"]  # Code smell: Configuracao insegura (Security Smell / Hardcoded Configuration); usar wildcard em ALLOWED_HOSTS remove uma barreira de validacao do Django e aumenta o risco de ataques via Host header, cache poisoning e comportamento diferente entre desenvolvimento e producao.
+# Smell fix: hosts come from configuration (env), never a wildcard. The safe
+# default covers local development; production passes its own real hostnames.
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+    if host.strip()
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -20,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
+    "drf_spectacular",
     "corsheaders",
     "catalog",
 ]
@@ -77,13 +84,35 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
+        # Le o token do header Authorization (Swagger/Postman) OU de um
+        # cookie httpOnly enviado pelo navegador (front-end seguro).
+        "catalog.authentication.CookieTokenAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 9,
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
+SPECTACULAR_SETTINGS = {
+    "TITLE": "API do HIVEE",
+    "DESCRIPTION": "Documentacao oficial da API de prestadores e categorias do HIVEE.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
+
+# Cookie httpOnly que transporta o token de autenticacao (smell fix #2).
+# `Secure` so e exigido fora de DEBUG, para funcionar em http://localhost.
+AUTH_COOKIE_NAME = os.getenv("DJANGO_AUTH_COOKIE_NAME", "hivee_token")
+AUTH_COOKIE_SECURE = not DEBUG
+AUTH_COOKIE_SAMESITE = "Lax"
+AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 14  # 14 dias
+
 CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    host.strip()
+    for host in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:5200,http://127.0.0.1:5200").split(",")
+    if host.strip()
+]

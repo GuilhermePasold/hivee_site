@@ -4,8 +4,7 @@ Marketplace de contratação de prestadores de serviço. App de **páginas reais
 (busca, perfil do prestador, cadastro, login) com visual dark + dourado,
 cinematic GSAP de abertura e localização via OpenStreetMap.
 
-> Os componentes visuais vêm das referências em `componentsui.md` (21st.dev) e
-> `components.md` — usados de verdade, não recriados.
+> Entrega e respostas das perguntas em [ENTREGA.md](ENTREGA.md).
 
 ## Stack
 
@@ -34,9 +33,17 @@ cd backend
 python -m venv venv
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
 .\venv\Scripts\python.exe manage.py migrate
-.\venv\Scripts\python.exe manage.py seed
+.\venv\Scripts\python.exe manage.py seed   # opcional: o hivee.db já vem populado
 .\venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
 ```
+
+> O `hivee.db` já vem versionado e populado (180 prestadores) — o `seed` acima é
+> opcional. Não há nada hardcoded: o projeto roda sem `.env` (há fallbacks); para
+> customizar, copie `backend/.env.example` para `backend/.env`.
+>
+> **Admin / docs:** http://localhost:8000/admin/ (usuário `admin`, senha
+> `admin12345`) · **Swagger:** http://localhost:8000/api/docs/ ·
+> **testes:** `.\venv\Scripts\python.exe manage.py test`
 
 **Frontend** (porta 5200):
 ```powershell
@@ -56,10 +63,12 @@ Ou os dois: `./start-dev.ps1`. O Vite faz proxy de `/api` → `:8000`.
 | GET    | `/api/providers/?city=&category=&search=&ordering=` | Lista filtrável                |
 | GET    | `/api/providers/recommended/?lat=&lng=`       | Top 8 com `match_score` + `match_reason` |
 | GET    | `/api/providers/<slug>/`                      | Detalhe                              |
-| POST   | `/api/providers/`                             | Cria perfil (requer token)           |
-| POST   | `/api/auth/register/` · `/login/`             | Cria conta / autentica (retorna token) |
-| GET    | `/api/auth/me/`                               | Usuário atual (Bearer Token)         |
+| POST   | `/api/providers/`                             | Cria perfil (requer autenticação)    |
+| POST   | `/api/auth/register/` · `/login/`             | Cria conta / autentica (token no corpo + cookie httpOnly) |
+| POST   | `/api/auth/logout/`                           | Limpa o cookie de autenticação       |
+| GET    | `/api/auth/me/`                               | Usuário atual (cookie ou `Token` header) |
 | GET    | `/api/stats/`                                 | Totais da plataforma                 |
+| GET    | `/api/schema/` · `/api/docs/`                 | OpenAPI + Swagger (drf-spectacular)  |
 
 ## Design
 

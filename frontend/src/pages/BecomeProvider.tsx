@@ -51,13 +51,14 @@ export default function BecomeProvider() {
     setError("");
     setLoading(true);
     try {
-      // Resolve coordinates for the chosen city/neighborhood via OpenStreetMap.
-      let lat = -23.5613; // Code smell: Fallback silencioso / tratamento de erro oculto; quando o geocoder nao encontra endereco, o fluxo continua com coordenadas padrao de Sao Paulo sem informar o usuario, gerando dados incorretos e tornando o problema dificil de diagnosticar depois.
-      let lng = -46.6565;
-      const found = await searchAddress(`${form.neighborhood}, ${form.city}`);
-      if (found[0]) {
-        lat = found[0].lat;
-        lng = found[0].lng;
+      let lat: number | null = null;
+      let lng: number | null = null;
+      if (form.city) {
+        const found = await searchAddress(`${form.neighborhood}, ${form.city}`);
+        if (found[0]) {
+          lat = found[0].lat;
+          lng = found[0].lng;
+        }
       }
       const provider = await api.createProvider({
         name: form.name,
@@ -65,9 +66,9 @@ export default function BecomeProvider() {
         bio: form.bio,
         category: form.category,
         hourly_rate: Number(form.hourly_rate),
-        city: form.city,
-        neighborhood: form.neighborhood,
-        state: form.state,
+        city: form.city || undefined,
+        neighborhood: form.neighborhood || undefined,
+        state: form.state || undefined,
         latitude: lat,
         longitude: lng,
         response_time: form.response_time,

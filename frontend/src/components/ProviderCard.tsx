@@ -44,7 +44,7 @@ export default function ProviderCard({ provider }: { provider: Provider }) {
           </span>
           <span className="flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5 text-gold-400" />
-            {provider.neighborhood || provider.city}
+            {provider.neighborhood || provider.city || "Sem endereço"}
             {provider.distance_km != null && (
               <span className="text-gold-300">· {provider.distance_km.toFixed(1)} km</span>
             )}

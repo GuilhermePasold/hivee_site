@@ -8,10 +8,9 @@ import { StackedCardsInteraction } from "@/components/ui/stacked-cards-interacti
 import Icon from "@/components/ui/Icon";
 import PhoneApp from "@/components/PhoneApp";
 import { api } from "@/lib/api";
+import { getUserLocation } from "@/lib/location";
 import { BRL } from "@/lib/utils";
 import type { Category, PlatformStats, Recommendation } from "@/types";
-
-const SP = { lat: -23.5613, lng: -46.6565 }; // Code smell: Dado hardcoded / Primitive Obsession de localizacao; coordenadas fixas de Sao Paulo ficam acopladas a pagina inicial, fazendo recomendacoes parecerem personalizadas quando na verdade ignoram a localizacao real do usuario ou uma configuracao central.
 
 export default function Home() {
   const navigate = useNavigate();
@@ -22,7 +21,10 @@ export default function Home() {
   useEffect(() => {
     api.stats().then(setStats).catch(() => undefined);
     api.categories().then(setCategories).catch(() => undefined);
-    api.recommended({ lat: SP.lat, lng: SP.lng }).then(setRecs).catch(() => undefined);
+    // Usa a localizacao real do usuario (com fallback configuravel).
+    getUserLocation().then((loc) =>
+      api.recommended(loc).then(setRecs).catch(() => undefined),
+    );
   }, []);
 
   return (
@@ -170,7 +172,7 @@ function RecCard({ rec }: { rec: Recommendation }) {
             <span className="font-semibold text-foreground">{rec.rating.toFixed(1)}</span>
           </span>
           <span className="flex items-center gap-1">
-            <MapPin className="h-3.5 w-3.5 text-gold-400" /> {rec.neighborhood}
+            <MapPin className="h-3.5 w-3.5 text-gold-400" /> {rec.neighborhood || rec.city || "Sem endereço"}
           </span>
         </div>
         <p className="line-clamp-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-foreground/65">
