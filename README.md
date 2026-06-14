@@ -25,9 +25,15 @@ cinematic GSAP de abertura e localização via OpenStreetMap.
 | `/sou-prestador`     | Cadastro de profissional (autenticado)                           |
 | `/entrar`, `/cadastrar` | Login / criar conta                                           |
 
+## Pré-requisitos
+
+- **Python 3.12 ou superior** (o Django 6 exige 3.12+). Verifique com `python --version`.
+- **Node.js 18+** (LTS) e **npm** — só para o frontend. Verifique com `node --version`.
+- Nada além disso: o banco (`hivee.db`) já vem no repositório, populado.
+
 ## Rodar
 
-**Backend** (porta 8000):
+**Backend** (porta 8000) — comandos no **Windows / PowerShell**:
 ```powershell
 cd backend
 python -m venv venv
@@ -35,6 +41,17 @@ python -m venv venv
 .\venv\Scripts\python.exe manage.py migrate
 .\venv\Scripts\python.exe manage.py seed   # opcional: o hivee.db já vem populado
 .\venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
+```
+
+No **macOS / Linux** troque o caminho do Python por `venv/bin/python` (e use
+`python3`):
+```bash
+cd backend
+python3 -m venv venv
+venv/bin/python -m pip install -r requirements.txt
+venv/bin/python manage.py migrate
+venv/bin/python manage.py seed   # opcional
+venv/bin/python manage.py runserver 127.0.0.1:8000
 ```
 
 > O `hivee.db` já vem versionado e populado (180 prestadores) — o `seed` acima é
