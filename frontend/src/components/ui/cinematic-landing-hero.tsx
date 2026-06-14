@@ -212,7 +212,7 @@ export function CinematicHero({
                     <Zap className="w-4 h-4 lg:w-5 lg:h-5 text-gold-300" />
                   </div>
                   <div>
-                    <p className="text-white text-xs lg:text-sm font-bold tracking-tight">Resposta em 15 min</p>
+                    <p className="text-white text-xs lg:text-sm font-bold tracking-tight">Respostas rápidas</p>
                     <p className="text-gold-200/50 text-[10px] lg:text-xs font-medium">média da plataforma</p>
                   </div>
                 </div>

@@ -8,6 +8,13 @@ export interface Category {
   provider_count: number;
 }
 
+export interface AvailabilitySlot {
+  id?: number;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+}
+
 export interface Provider {
   id: number;
   slug: string;
@@ -16,6 +23,7 @@ export interface Provider {
   bio: string;
   category: Category;
   avatar_url: string;
+  avatar?: string | null;
   cover_url: string;
   rating: number;
   reviews_count: number;
@@ -32,8 +40,10 @@ export interface Provider {
   top_rated: boolean;
   response_time: string;
   availability: string;
+  availability_slots?: AvailabilitySlot[];
   skills: string[];
   member_since: number;
+  status: "pending" | "approved" | "rejected";
 }
 
 export interface Recommendation extends Provider {
@@ -75,6 +85,7 @@ export interface User {
   first_name: string;
   is_provider: boolean;
   provider_slug: string | null;
+  cpf?: string | null;
 }
 
 export interface AuthResponse {

@@ -375,3 +375,23 @@ def _replace_query(request, key, value):
     params = request.query_params.copy()
     params[key] = value
     return f"{request.path}?{params.urlencode()}"
+
+
+class AvatarUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Faz upload da foto do perfil do prestador",
+        request=OpenApiTypes.OBJECT,
+        responses=OpenApiTypes.OBJECT,
+    )
+    def post(self, request):
+        file = request.FILES.get("avatar")
+        if not file:
+            return Response({"detail": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+        slug = request.data.get("slug", "")
+        provider = Provider.objects.filter(slug=slug, owner=request.user).first()
+        if not provider:
+            return Response({"detail": "Prestador não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        provider.avatar.save(file.name, file, save=True)
+        return Response({"avatar_url": provider.avatar.url}, status=status.HTTP_200_OK)

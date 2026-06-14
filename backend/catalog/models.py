@@ -65,6 +65,13 @@ class Provider(models.Model):
     skills = models.JSONField(default=list)
     member_since = models.PositiveIntegerField(default=2022)
 
+    status = models.CharField(
+        max_length=20,
+        default="pending",
+        choices=[("pending", "Em análise"), ("approved", "Aprovado"), ("rejected", "Rejeitado")],
+    )
+    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -93,6 +100,37 @@ class ProviderImage(models.Model):
 
     def __str__(self) -> str:
         return self.alt_text or f"Imagem de {self.provider.name}"
+
+
+class AvailabilitySlot(models.Model):
+    provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name="availability_slots")
+    day_of_week = models.IntegerField(choices=[(0, "Seg"), (1, "Ter"), (2, "Qua"), (3, "Qui"), (4, "Sex"), (5, "Sáb"), (6, "Dom")])
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    class Meta:
+        verbose_name = "Horário disponível"
+        verbose_name_plural = "Horários disponíveis"
+        ordering = ["day_of_week", "start_time"]
+
+    def __str__(self) -> str:
+        days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+        return f"{days[self.day_of_week]} {self.start_time:%H:%M}-{self.end_time:%H:%M}"
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
+    )
+    cpf = models.CharField(max_length=14, unique=True, blank=True, null=True)
+    telefone = models.CharField(max_length=15, blank=True, default="")
+
+    class Meta:
+        verbose_name = "Perfil do usuário"
+        verbose_name_plural = "Perfis de usuários"
+
+    def __str__(self) -> str:
+        return f"Perfil de {self.user.email}"
 
 
 class Cliente(models.Model):

@@ -5,6 +5,8 @@
 backend/venv/
 backend/**/__pycache__/
 backend/static_files/
+# media: uploads enviados pelos usuarios (ex.: fotos de perfil)
+backend/media/
 
 # Node / Vite
 # node_modules: `npm install`; dist: `npm run build`

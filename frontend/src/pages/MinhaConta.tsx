@@ -47,9 +47,13 @@ export default function MinhaConta() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-foreground/75">
+          <div className="mt-4 flex flex-wrap gap-3 text-sm text-foreground/75">
+            {user.cpf && <span>CPF: {user.cpf}</span>}
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-foreground/75">
             {user.is_provider
-              ? "Você tem um perfil de profissional ativo na HIVEE."
+              ? "Você tem um perfil de profissional cadastrado. Ele precisa ser aprovado por nossa equipe para aparecer na busca."
               : "Conta de cliente. Você pode contratar profissionais e, quando quiser, criar seu próprio perfil de profissional."}
           </div>
 

@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from . import views
 from .views import (
+    AvatarUploadView,
     CategoryListView,
     CitiesView,
     LoginView,
@@ -38,6 +39,7 @@ urlpatterns = [
     path("api/auth/login/", LoginView.as_view(), name="login"),
     path("api/auth/logout/", LogoutView.as_view(), name="logout"),
     path("api/auth/me/", MeView.as_view(), name="me"),
+    path("api/upload-avatar/", AvatarUploadView.as_view(), name="upload-avatar"),
     # Rotas de /api/providers/ geradas pelo roteador do DRF.
     path("api/", include(router.urls)),
 ]

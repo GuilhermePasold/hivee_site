@@ -1,4 +1,5 @@
 from .api_views import (
+    AvatarUploadView,
     CategoryListView,
     CitiesView,
     LoginView,
@@ -13,6 +14,7 @@ from .perfil_views import checar_sessao, deletar_conta, editar_perfil
 from .provider_views import detalhe_prestador, listar_prestadores
 
 __all__ = [
+    "AvatarUploadView",
     "CategoryListView",
     "CitiesView",
     "LoginView",

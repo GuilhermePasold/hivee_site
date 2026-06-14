@@ -1,5 +1,6 @@
 import type {
   AuthResponse,
+  AvailabilitySlot,
   Category,
   City,
   Paginated,
@@ -71,8 +72,9 @@ export interface ProviderInput {
   state?: string;
   latitude?: number | null;
   longitude?: number | null;
-  response_time: string;
-  availability: string;
+  response_time?: string;
+  availability?: string;
+  availability_slots?: AvailabilitySlot[];
   skills: string[];
 }
 
@@ -89,8 +91,16 @@ export const api = {
     request<Recommendation[]>("/providers/recommended/", { params }),
   createProvider: (input: ProviderInput) =>
     request<Provider>("/providers/", { method: "POST", body: input }),
+  uploadAvatar: (slug: string, file: File) => {
+    const form = new FormData();
+    form.append("avatar", file);
+    form.append("slug", slug);
+    return fetch("/api/upload-avatar/", { method: "POST", body: form, credentials: "include" }).then(
+      (r) => r.json() as Promise<{ avatar_url: string }>,
+    );
+  },
 
-  register: (body: { name: string; email: string; password: string }) =>
+  register: (body: { name: string; email: string; password: string; cpf?: string }) =>
     request<AuthResponse>("/auth/register/", { method: "POST", body }),
   login: (body: { email: string; password: string }) =>
     request<AuthResponse>("/auth/login/", { method: "POST", body }),

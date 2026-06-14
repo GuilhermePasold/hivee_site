@@ -84,7 +84,9 @@ export default function ProviderProfile() {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h1 className="font-display text-3xl font-bold sm:text-4xl">{p.name}</h1>
-                {p.verified && <BadgeCheck className="h-6 w-6 text-gold-400" />}
+                {p.status === "approved" && <BadgeCheck className="h-6 w-6 text-gold-400" />}
+                {p.status === "pending" && <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-400">Em análise</span>}
+                {p.status === "rejected" && <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-2.5 py-0.5 text-xs font-medium text-rose-400">Rejeitado</span>}
               </div>
               <p className="mt-1 text-lg text-muted-foreground">{p.headline}</p>
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-foreground/75">
