@@ -58,7 +58,7 @@ urlpatterns = [
     path("api/auth/me/", MeView.as_view(), name="me"),
     path("api/upload-avatar/", AvatarUploadView.as_view(), name="upload-avatar"),
     path("api/cities-by-state/<str:uf>/", CitiesByStateView.as_view(), name="cities-by-state"),
-    # --- Central de Ajuda (FAQ) — exige autenticação ---
+    # --- Central de Ajuda (FAQ) pública ---
     path("api/faq/", FAQArticleListView.as_view(), name="faq"),
     path("api/faq/categories/", SupportCategoryListView.as_view(), name="faq-categories"),
     # --- Agendamento de serviços (precede o router p/ casar antes do detail) ---
