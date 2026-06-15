@@ -163,8 +163,13 @@ O Vite faz proxy de `/api` e `/ws` para o backend na porta `8000`.
 
 ### Atalho
 
-Existe `start-dev.ps1`, mas ele usa `manage.py runserver`. Para testar WebSocket
-do chat, prefira Daphne conforme mostrado acima.
+Na raiz do projeto, o script abaixo instala dependências ausentes, roda
+migrações, semeia dados básicos quando necessário e sobe backend com Daphne +
+frontend com Vite:
+
+```powershell
+.\start-dev.ps1
+```
 
 ## Usuários e Admin
 

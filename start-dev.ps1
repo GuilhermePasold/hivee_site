@@ -1,29 +1,70 @@
-# Sobe backend (Django :8000) e frontend (Vite) em janelas separadas.
+# Starts the HIVEE backend (Daphne/ASGI on :8000) and frontend (Vite on :5200).
+# Use this script for local visual tests, especially the chat WebSocket.
+
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
-$py = Join-Path $root "backend\venv\Scripts\python.exe"
+$backend = Join-Path $root "backend"
+$frontend = Join-Path $root "frontend"
+$py = Join-Path $backend "venv\Scripts\python.exe"
+$daphne = Join-Path $backend "venv\Scripts\daphne.exe"
+$logDir = Join-Path $root ".run-logs"
+
+New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
 if (-not (Test-Path $py)) {
-    Write-Host "Criando venv e instalando dependencias do backend..." -ForegroundColor Yellow
-    python -m venv (Join-Path $root "backend\venv")
-    & $py -m pip install -r (Join-Path $root "backend\requirements.txt")
+    Write-Host "Creating backend venv and installing dependencies..." -ForegroundColor Yellow
+    python -m venv (Join-Path $backend "venv")
+    & $py -m pip install -r (Join-Path $backend "requirements.txt")
 }
 
-# Garante migracoes e seed na primeira execucao.
-$db = Join-Path $root "backend\hivee.db"
-& $py (Join-Path $root "backend\manage.py") migrate
-if (-not (Test-Path $db) -or ((& $py (Join-Path $root "backend\manage.py") shell -c "from catalog.models import Provider; print(Provider.objects.count())") -eq "0")) {
-    & $py (Join-Path $root "backend\manage.py") seed
+if (-not (Test-Path $daphne)) {
+    Write-Host "Installing backend dependencies missing Daphne..." -ForegroundColor Yellow
+    & $py -m pip install -r (Join-Path $backend "requirements.txt")
 }
 
-Write-Host "Subindo backend (http://127.0.0.1:8000) e frontend (Vite)..." -ForegroundColor Green
+if (-not (Test-Path (Join-Path $frontend "node_modules"))) {
+    Write-Host "Installing frontend dependencies..." -ForegroundColor Yellow
+    Push-Location $frontend
+    npm install
+    Pop-Location
+}
 
+Write-Host "Applying migrations..." -ForegroundColor Cyan
+& $py (Join-Path $backend "manage.py") migrate
+
+$providerCountOutput = & $py (Join-Path $backend "manage.py") shell -c "from catalog.models import Provider; print(Provider.objects.count())"
+$providerCount = [int]($providerCountOutput | Select-Object -Last 1)
+if ($providerCount -eq 0) {
+    Write-Host "Seeding demo providers..." -ForegroundColor Cyan
+    & $py (Join-Path $backend "manage.py") seed
+}
+
+$faqCountOutput = & $py (Join-Path $backend "manage.py") shell -c "from catalog.models import FAQArticle; print(FAQArticle.objects.count())"
+$faqCount = [int]($faqCountOutput | Select-Object -Last 1)
+if ($faqCount -eq 0) {
+    Write-Host "Seeding support FAQ..." -ForegroundColor Cyan
+    & $py (Join-Path $backend "manage.py") seed_support
+}
+
+Write-Host "Stopping previous listeners on ports 8000 and 5200..." -ForegroundColor Cyan
+foreach ($port in @(8000, 5200)) {
+    $owners = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty OwningProcess -Unique
+    foreach ($owner in $owners) {
+        Stop-Process -Id $owner -Force -ErrorAction SilentlyContinue
+    }
+}
+
+Write-Host "Starting backend: http://127.0.0.1:8000" -ForegroundColor Green
 Start-Process powershell -ArgumentList @(
     "-NoExit", "-Command",
-    "`$env:PYTHONIOENCODING='utf-8'; & '$py' '$root\backend\manage.py' runserver 127.0.0.1:8000"
+    "Set-Location '$backend'; `$env:PYTHONIOENCODING='utf-8'; & '$daphne' -p 8000 hivee.asgi:application"
 )
 
+Write-Host "Starting frontend: http://localhost:5200" -ForegroundColor Green
 Start-Process powershell -ArgumentList @(
     "-NoExit", "-Command",
-    "Set-Location '$root\frontend'; npm run dev"
+    "Set-Location '$frontend'; npm run dev"
 )
+
+Write-Host "Done. Open http://localhost:5200" -ForegroundColor Green
