@@ -1,20 +1,31 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { getUserLocation } from "@/lib/location";
 import ProviderCard from "@/components/ProviderCard";
-import type { Recommendation } from "@/types";
-
-const SP = { lat: -23.5613, lng: -46.6565 };
+import type { FeaturedResponse, Provider } from "@/types";
 
 export default function Recommended() {
-  const [recs, setRecs] = useState<Recommendation[]>([]);
+  const [prestadores, setPrestadores] = useState<Provider[]>([]);
+  const [fallback, setFallback] = useState(false);
+  const [mensagem, setMensagem] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api
-      .recommended({ lat: SP.lat, lng: SP.lng })
-      .then(setRecs)
-      .catch(() => setRecs([]))
-      .finally(() => setLoading(false));
+    getUserLocation().then((loc) =>
+      api
+        .featured({ lat: loc.lat, lng: loc.lng })
+        .then((res: FeaturedResponse) => {
+          setPrestadores(res.prestadores);
+          setFallback(res.fallback);
+          setMensagem(res.mensagem);
+        })
+        .catch(() => {
+          setPrestadores([]);
+          setFallback(true);
+          setMensagem("Nenhum prestador em destaque encontrado na sua região.");
+        })
+        .finally(() => setLoading(false)),
+    );
   }, []);
 
   return (
@@ -24,7 +35,7 @@ export default function Recommended() {
           Os mais <span className="text-gold">indicados</span> agora
         </h1>
         <p className="mt-3 max-w-xl text-muted-foreground">
-          Seleção do sistema combinando avaliação, distância, preço e tempo de resposta.
+          Prestadores em destaque perto de você — ordenados por serviços realizados e avaliação.
         </p>
 
         <div className="mt-10">
@@ -34,15 +45,17 @@ export default function Recommended() {
                 <div key={i} className="surface h-80 animate-pulse rounded-3xl opacity-60" />
               ))}
             </div>
+          ) : fallback || prestadores.length === 0 ? (
+            <div className="flex flex-col items-center gap-4 py-24 text-center">
+              <div className="text-5xl opacity-30">📍</div>
+              <p className="max-w-md text-muted-foreground">
+                {mensagem ?? "Nenhum prestador em destaque encontrado na sua região."}
+              </p>
+            </div>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {recs.map((r) => (
-                <div key={r.id} className="flex flex-col gap-2">
-                  <ProviderCard provider={r} />
-                  <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs text-foreground/65">
-                    {r.match_reason}
-                  </p>
-                </div>
+              {prestadores.map((p) => (
+                <ProviderCard key={p.id} provider={p} />
               ))}
             </div>
           )}

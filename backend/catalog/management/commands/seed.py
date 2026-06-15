@@ -297,6 +297,7 @@ class Command(BaseCommand):
                     availability=random.choice(AVAILABILITY),
                     skills=random.sample(meta["skills"], k=random.randint(3, 5)),
                     member_since=random.randint(2016, 2024),
+                    status="approved",
                 )
             )
 

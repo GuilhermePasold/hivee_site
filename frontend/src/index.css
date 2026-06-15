@@ -61,54 +61,71 @@
 }
 
 @layer components {
-  /* Chrome elements (navbar, search bar, dialogs). The navbar is FIXED and the
-     search bar scrolls — a backdrop-filter on either repaints the blur on every
-     scroll frame (the main scroll-jank culprit), so we use a dark translucent
-     tint instead. Looks like glass, costs nothing to scroll. */
+  /* Chrome elements (navbar, search bar, dialogs). Uses backdrop-filter with
+     enough opacity for the glass to be visible over the rich bg-mesh.
+     will-change: transform keeps the blur composited on the GPU. */
   .glass {
     position: relative;
-    background: rgba(24, 24, 30, 0.78);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    /* Higher opacity + higher blur = visible frosted glass like Apple/WhatsApp */
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
       0 16px 44px -24px rgba(0, 0, 0, 0.85);
+    /* Pin to GPU so scroll doesn't trigger repaint */
+    will-change: transform;
   }
-  /* Cards: milky liquid-glass LOOK via a white translucent tint + bright bevel.
-     No backdrop-filter — over the near-black background the blur had nothing to
-     sample, so dropping it looks identical and keeps big grids at 60fps. */
+  /* Cards: true frosted-glass with backdrop-filter. The bg-mesh now provides
+     rich colored backdrops for the blur to refract, creating the
+     Apple/WhatsApp liquid-glass look. Cards are NOT fixed so no scroll cost. */
   .surface {
     position: relative;
-    /* glossy milky gradient: brighter at the top-left where the beam hits */
-    background: linear-gradient(150deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05) 55%);
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    /* Brighter base so the frosted effect is actually visible (like WhatsApp) */
+    background: linear-gradient(
+      150deg,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.08) 40%,
+      rgba(255, 255, 255, 0.04) 70%
+    );
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow:
-      inset 2px 2px 2px rgba(255, 255, 255, 0.4),
-      inset -2px -2px 2px rgba(0, 0, 0, 0.35),
-      inset 0 0 30px rgba(255, 255, 255, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset -2px -2px 2px rgba(0, 0, 0, 0.25),
       0 18px 50px -26px rgba(0, 0, 0, 0.9);
   }
 
-  /* Opaque dark card for the stacked deck + dropdown. Solid (no backdrop-filter)
-     so the 3 deck cards on the home page don't repaint a blur while scrolling. */
+  /* Solid glass card for the stacked deck + dropdown. Uses real backdrop-filter
+     now that bg-mesh provides rich content behind. GlassSelect menu uses a
+     portal so stacking context isn't an issue. */
   .glass-solid {
     position: relative;
-    background: linear-gradient(150deg, rgba(32, 32, 40, 0.97), rgba(14, 14, 18, 0.98));
-    border: 1px solid rgba(255, 255, 255, 0.13);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 30px 70px -30px rgba(0, 0, 0, 0.95);
+    background: linear-gradient(150deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04) 55%);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 30px 70px -30px rgba(0, 0, 0, 0.95);
   }
 
-  /* Single unified backdrop: pure black with one faint warm spotlight up top.
-     No colors — the "light" lives on the glass elements, not the background. */
-  /* A single clean directional light beam from the top (like the dark-glass
-     reference) — gives the glass something to catch. No random blobs. */
+  /* Unified site backdrop: clean light beams that the glass refracts.
+     Gold accent warms the scene without overwhelming the UI. */
   .bg-mesh {
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
     background:
-      linear-gradient(125deg, rgba(255, 255, 255, 0.055) 0%, transparent 28%),
-      radial-gradient(45% 32% at 72% -8%, rgba(234, 179, 8, 0.07), transparent 62%);
+      /* Main warm gold beam from the top-right */
+      radial-gradient(45% 32% at 72% -8%, rgba(234, 179, 8, 0.18), transparent 62%),
+      /* Secondary soft gold glow from bottom-left */
+      radial-gradient(30% 25% at 20% 85%, rgba(253, 224, 71, 0.1), transparent 55%),
+      /* Ambient directional light */
+      linear-gradient(125deg, rgba(255, 255, 255, 0.055) 0%, transparent 28%);
   }
   .card-hover {
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
@@ -146,6 +163,14 @@
     transition: border-color 0.25s ease, background 0.25s ease; cursor: pointer;
   }
   .btn-ghost:hover { border-color: rgba(234,179,8,0.5); background: rgba(255,255,255,0.07); }
+
+  /* Liquid-glass distortion: applies the SVG refraction filter defined in
+     Layout.tsx. Combines with backdrop-filter for the full Apple-like effect:
+     blurred content behind + organic noise displacement = "liquid" feel.
+     Use sparingly — only on a few premium elements to keep GPU cost low. */
+  .liquid-glass {
+    filter: url(#glass-distortion);
+  }
 }
 
 /* Leaflet dark */

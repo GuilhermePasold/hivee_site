@@ -1,4 +1,4 @@
-import { Hexagon, MapPin, Menu, Search } from "lucide-react";
+import { MapPin, Menu, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
@@ -21,14 +21,15 @@ export default function PhoneApp() {
   return (
     <div className="flex h-full flex-col bg-gradient-to-b from-[#16120b] to-[#0c0a06] px-4 pb-4 pt-9 text-left">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Hexagon className="h-4 w-4 text-gold-400" strokeWidth={1.6} />
-          <span className="text-xs font-bold">HIVEE</span>
-        </div>
+        <img
+          src="/hivee_logo.png"
+          alt="HIVEE"
+          className="h-6 w-auto animate-in fade-in zoom-in duration-700"
+        />
         <Menu className="h-4 w-4 text-foreground/60" />
       </div>
 
-      <h3 className="mt-4 text-2xl font-extrabold leading-[1.05] tracking-tight">
+      <h3 className="mt-6 text-2xl font-extrabold leading-[1.05] tracking-tight">
         Encontre seu
         <br />
         <span className="text-gold">profissional</span>

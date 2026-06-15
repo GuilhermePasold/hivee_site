@@ -23,12 +23,16 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "daphne",
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
     "drf_spectacular",
     "corsheaders",
+    "channels",
     "catalog",
+    "agent.apps.AgentConfig",
+    "logs",
 ]
 
 MIDDLEWARE = [
@@ -40,6 +44,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "logs.middleware.RequestLogMiddleware",
 ]
 
 ROOT_URLCONF = "hivee.urls"
@@ -60,12 +65,19 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "hivee.wsgi.application"
+ASGI_APPLICATION = "hivee.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "hivee.db",
-    }
+    },
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -101,8 +113,8 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "20/hour",
-        "user": "200/hour",
+        "anon": os.getenv("DJANGO_THROTTLE_ANON", "1000/hour" if DEBUG else "20/hour"),
+        "user": os.getenv("DJANGO_THROTTLE_USER", "200/hour"),
     },
 }
 
@@ -119,6 +131,10 @@ AUTH_COOKIE_NAME = os.getenv("DJANGO_AUTH_COOKIE_NAME", "hivee_token")
 AUTH_COOKIE_SECURE = not DEBUG
 AUTH_COOKIE_SAMESITE = "Lax"
 AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 14  # 14 dias
+
+# URL pública do front-end, usada para montar links em canais externos
+# (ex.: WhatsApp) onde o caminho relativo da notificação não basta.
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5200")
 
 CORS_ALLOW_ALL_ORIGINS = True
 

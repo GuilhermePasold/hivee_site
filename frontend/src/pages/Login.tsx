@@ -1,4 +1,4 @@
-import { Hexagon, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -46,9 +46,8 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
   return (
     <div className="flex min-h-screen items-center justify-center px-6 py-28">
       <div className="glass w-full max-w-md rounded-[2rem] p-8 sm:p-10">
-        <Link to="/" className="mb-6 flex items-center gap-2">
-          <Hexagon className="h-8 w-8 text-gold-400" strokeWidth={1.5} />
-          <span className="font-display text-xl font-bold">HIVEE</span>
+        <Link to="/" className="mb-6 inline-flex">
+          <img src="/hivee_logo.png" alt="HIVEE" className="h-10 w-auto" />
         </Link>
         <h1 className="font-display text-3xl font-bold">{title}</h1>
         <p className="mt-1 mb-7 text-muted-foreground">{subtitle}</p>

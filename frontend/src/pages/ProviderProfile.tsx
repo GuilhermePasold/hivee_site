@@ -1,12 +1,14 @@
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import {
-  ArrowLeft, BadgeCheck, Clock, MapPin, MessageSquare, Phone,
+  ArrowLeft, BadgeCheck, Clock, Heart, MapPin, MessageSquare, Phone,
   Star, CalendarCheck, Award,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { useChat } from "@/context/ChatContext";
 import { BRL } from "@/lib/utils";
 import Avatar from "@/components/ui/Avatar";
 import Icon from "@/components/ui/Icon";
@@ -23,9 +25,14 @@ const pin = (avatar: string) =>
 
 export default function ProviderProfile() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { openChat } = useChat();
   const [p, setP] = useState<Provider | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [fav, setFav] = useState(false);
+  const [favBusy, setFavBusy] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -33,10 +40,32 @@ export default function ProviderProfile() {
     setError(false);
     api
       .provider(slug)
-      .then(setP)
+      .then((data) => {
+        setP(data);
+        setFav(!!data.is_favorited);
+      })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  async function toggleFavorite() {
+    if (!slug || favBusy) return;
+    if (!user) {
+      navigate("/entrar");
+      return;
+    }
+    setFavBusy(true);
+    const next = !fav;
+    setFav(next); // otimista
+    try {
+      if (next) await api.swipe(slug, "like", "profile");
+      else await api.unfavorite(slug);
+    } catch {
+      setFav(!next); // desfaz em caso de erro
+    } finally {
+      setFavBusy(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -58,7 +87,6 @@ export default function ProviderProfile() {
     );
   }
 
-  const accent = p.category.accent || "#eab308";
   const stats = [
     { icon: Star, label: "Avaliação", value: `${p.rating.toFixed(1)} (${p.reviews_count})` },
     { icon: CalendarCheck, label: "Serviços", value: String(p.jobs_done) },
@@ -75,7 +103,7 @@ export default function ProviderProfile() {
 
         {/* Cover + identity */}
         <div className="surface relative overflow-hidden rounded-[2rem]">
-          <div className="h-40 w-full" style={{ background: `linear-gradient(135deg, ${accent}66, transparent 70%)` }} />
+          <div className="h-40 w-full bg-gradient-to-br from-white/[0.12] via-white/[0.04] to-transparent" />
           <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-end sm:gap-6 sm:p-8">
             <Avatar
               src={p.avatar || p.avatar_url}
@@ -130,14 +158,28 @@ export default function ProviderProfile() {
             <h2 className="font-display text-2xl font-semibold">Sobre</h2>
             <p className="mt-3 leading-relaxed text-foreground/80">{p.bio}</p>
 
-            <h3 className="mt-8 font-display text-lg font-semibold">Especialidades</h3>
+            <h3 className="mt-8 font-display text-lg font-semibold">Serviços oferecidos</h3>
             <div className="mt-3 flex flex-wrap gap-2">
-              {p.skills.map((s) => (
+              {(p.tags?.length ? p.tags.map((t) => t.name) : p.skills).map((s) => (
                 <span key={s} className="rounded-full border border-white/12 bg-white/5 px-3.5 py-1.5 text-sm text-foreground/80">
                   {s}
                 </span>
               ))}
             </div>
+
+            {p.availability_slots && p.availability_slots.length > 0 && (
+              <>
+                <h3 className="mt-8 font-display text-lg font-semibold">Agenda de disponibilidade</h3>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {p.availability_slots.map((s) => (
+                    <span key={s.id ?? `${s.day_of_week}-${s.start_time}`} className="inline-flex items-center gap-1.5 rounded-2xl border border-gold-500/30 bg-gold-500/10 px-3 py-1.5 text-sm text-gold-100">
+                      <CalendarCheck className="h-3.5 w-3.5 text-gold-300" />
+                      {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][s.day_of_week]} · {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Map + contact */}
@@ -166,11 +208,35 @@ export default function ProviderProfile() {
             )}
 
             <div className="surface flex flex-col gap-3 rounded-3xl p-6">
-              <button className="btn-gold w-full py-3.5 text-base">
+              <button
+                type="button"
+                onClick={() =>
+                  openChat({
+                    draft: `Tenho interesse em conversar com o prestador ${p.name}. Perfil: /prestador/${p.slug}. Categoria: ${p.category.name}. Serviço: ${p.headline}. Cidade: ${p.city || "não informada"}.`,
+                  })
+                }
+                className="btn-gold w-full py-3.5 text-base"
+              >
                 <MessageSquare className="h-4 w-4" /> Enviar mensagem
               </button>
               <button className="btn-ghost w-full py-3.5 text-base">
                 <Phone className="h-4 w-4" /> Solicitar orçamento
+              </button>
+              <button
+                type="button"
+                onClick={toggleFavorite}
+                disabled={favBusy}
+                aria-pressed={fav}
+                className={`w-full rounded-full border py-3.5 text-base font-medium transition-colors disabled:opacity-60 ${
+                  fav
+                    ? "border-gold-500/50 bg-gold-500/15 text-gold-200 hover:bg-gold-500/25"
+                    : "border-white/15 bg-white/5 text-foreground/80 hover:border-gold-500/40 hover:text-foreground"
+                }`}
+              >
+                <span className="inline-flex items-center justify-center gap-2">
+                  <Heart className={`h-4 w-4 ${fav ? "fill-gold-400 text-gold-400" : ""}`} />
+                  {fav ? "Salvo nos favoritos" : "Favoritar prestador"}
+                </span>
               </button>
               <p className="text-center text-xs text-muted-foreground">
                 Pagamento protegido pela HIVEE · garantia de satisfação
@@ -178,6 +244,30 @@ export default function ProviderProfile() {
             </div>
           </div>
         </div>
+
+        {/* Portfólio: fotos de serviços realizados */}
+        {p.gallery && p.gallery.length > 0 && (
+          <div className="surface mt-6 rounded-3xl p-6 sm:p-8">
+            <h2 className="font-display text-2xl font-semibold">Trabalhos realizados</h2>
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {p.gallery.map((g) => (
+                <a
+                  key={g.id}
+                  href={g.image_url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10"
+                >
+                  <img
+                    src={g.image_url || ""}
+                    alt={g.alt_text || `Trabalho de ${p.name}`}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

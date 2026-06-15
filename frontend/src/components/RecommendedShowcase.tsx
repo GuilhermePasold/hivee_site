@@ -4,12 +4,12 @@ import { BRL } from "@/lib/utils";
 import Avatar from "@/components/ui/Avatar";
 import type { Recommendation } from "@/types";
 
-// Liquid-glass showcase: a few REAL glass cards (backdrop-filter) sitting over a
-// rich gold/chrome aurora, so the glass refracts the light and glows like the
-// references (Mountain Land / liquid-chrome). Contained to one section + a
-// handful of cards => no scroll-jank.
+// Liquid-glass showcase: REAL glass cards (backdrop-filter + SVG distortion)
+// sitting over a rich gold/chrome aurora. The .liquid-glass class applies the
+// organic SVG refraction filter defined in Layout.tsx for the true "liquid" feel.
+// Contained to one section + a handful of cards => no scroll-jank.
 const glass =
-  "relative overflow-hidden rounded-[1.8rem] border border-white/25 bg-white/[0.1] backdrop-blur-lg " +
+  "relative overflow-hidden rounded-[1.8rem] border border-white/25 bg-white/[0.1] backdrop-blur-lg liquid-glass " +
   "[box-shadow:inset_2px_2px_2px_rgba(255,255,255,0.5),inset_-2px_-2px_3px_rgba(0,0,0,0.25),0_30px_70px_-30px_rgba(0,0,0,0.9)]";
 
 export default function RecommendedShowcase({ recs }: { recs: Recommendation[] }) {

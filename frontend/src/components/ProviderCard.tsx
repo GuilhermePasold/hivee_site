@@ -6,16 +6,12 @@ import Icon from "@/components/ui/Icon";
 import Avatar from "@/components/ui/Avatar";
 
 export default function ProviderCard({ provider }: { provider: Provider }) {
-  const accent = provider.category.accent || "#eab308";
   return (
     <Link
       to={`/prestador/${provider.slug}`}
       className="surface card-hover group flex h-full flex-col overflow-hidden rounded-3xl"
     >
-      <div
-        className="relative h-20 w-full"
-        style={{ background: `linear-gradient(135deg, ${accent}33, transparent 60%)` }}
-      >
+      <div className="relative h-20 w-full bg-gradient-to-br from-white/[0.12] via-white/[0.04] to-transparent">
         <span className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/55 px-2.5 py-1 text-[11px] text-foreground/85">
           <Icon name={provider.category.icon} className="h-3 w-3 text-gold-400" />
           {provider.category.name}

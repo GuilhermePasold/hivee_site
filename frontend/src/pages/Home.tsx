@@ -1,4 +1,4 @@
-import { Instagram, Linkedin, Twitter, ArrowRight, Star, MapPin } from "lucide-react";
+import { Instagram, Linkedin, Twitter, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -7,10 +7,9 @@ import { MinimalistHero } from "@/components/ui/minimalist-hero";
 import { StackedCardsInteraction } from "@/components/ui/stacked-cards-interaction";
 import Icon from "@/components/ui/Icon";
 import PhoneApp from "@/components/PhoneApp";
-import Avatar from "@/components/ui/Avatar";
+import RecCard from "@/components/RecCard";
 import { api } from "@/lib/api";
 import { getUserLocation } from "@/lib/location";
-import { BRL } from "@/lib/utils";
 import type { Category, PlatformStats, Recommendation } from "@/types";
 
 export default function Home() {
@@ -39,7 +38,7 @@ export default function Home() {
 
       {/* 2 — The site hero */}
       <MinimalistHero
-        logo={<span />}
+        logo={<img src="/hivee_logo.png" alt="HIVEE" className="h-16 w-auto" />}
         navLinks={[]}
         mainText="A HIVEE conecta você aos melhores prestadores de serviço perto de você. Compare avaliações, preços e distância e contrate em minutos."
         ctaLabel="Buscar profissionais"
@@ -109,7 +108,9 @@ export default function Home() {
             {recs.length > 0 && (
               <StackedCardsInteraction
                 cards={recs.slice(0, 3).map((r) => (
-                  <RecCard key={r.id} rec={r} />
+                  <Link key={r.id} to={`/prestador/${r.slug}`} className="block h-full">
+                    <RecCard rec={r} />
+                  </Link>
                 ))}
               />
             )}
@@ -146,44 +147,5 @@ function SectionHeader({ title }: { title: React.ReactNode }) {
     <div className="max-w-2xl">
       <h2 className="font-display text-4xl font-bold leading-[1.05] sm:text-5xl">{title}</h2>
     </div>
-  );
-}
-
-function RecCard({ rec }: { rec: Recommendation }) {
-  const accent = rec.category.accent || "#eab308";
-  return (
-    <Link to={`/prestador/${rec.slug}`} className="flex h-full flex-col">
-      <div
-        className="relative h-40 w-full shrink-0"
-        style={{ background: `linear-gradient(135deg, ${accent}66, transparent 70%)` }}
-      >
-        <span className="absolute left-4 top-4 inline-flex items-center rounded-full border border-gold-500/30 bg-black/60 px-3 py-1 text-[11px] font-semibold text-gold-300">
-          {rec.match_score}% match
-        </span>
-        <Avatar src={rec.avatar || rec.avatar_url} alt={rec.name} size={80} className="absolute -bottom-8 left-6 rounded-2xl border-2 border-white/20 object-cover" />
-      </div>
-      <div className="flex flex-1 flex-col gap-3 p-6 pt-11">
-        <div>
-          <h3 className="font-display text-xl font-semibold">{rec.name}</h3>
-          <p className="text-sm text-muted-foreground">{rec.headline}</p>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-foreground/70">
-          <span className="flex items-center gap-1">
-            <Star className="h-3.5 w-3.5 fill-gold-400 text-gold-400" />
-            <span className="font-semibold text-foreground">{rec.rating.toFixed(1)}</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <MapPin className="h-3.5 w-3.5 text-gold-400" /> {rec.neighborhood || rec.city || "Sem endereço"}
-          </span>
-        </div>
-        <p className="line-clamp-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-foreground/65">
-          {rec.match_reason}
-        </p>
-        <div className="mt-auto flex items-center justify-between border-t border-white/10 pt-3">
-          <span className="font-semibold">{BRL.format(rec.hourly_rate)}<span className="text-xs font-normal text-muted-foreground">/h</span></span>
-          <span className="text-xs text-gold-300">Ver perfil →</span>
-        </div>
-      </div>
-    </Link>
   );
 }

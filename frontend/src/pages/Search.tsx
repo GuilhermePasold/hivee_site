@@ -40,12 +40,6 @@ export default function Search() {
   useEffect(() => {
     // The search only runs once a city is confirmed — no city, no (misleading)
     // results. This avoids showing the same providers regardless of location.
-    if (!city) {
-      setProviders([]);
-      setCount(0);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     const t = setTimeout(() => {
       api
@@ -144,11 +138,11 @@ export default function Search() {
         </div>
 
         {/* Result bar — only once a city is chosen */}
-        {city && (
+        {(
           <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-lg text-foreground/80">
               {loading ? "Buscando…" : <><span className="font-semibold text-foreground">{count}</span> profissionai{count === 1 ? "" : "s"}</>}
-              <span className="text-muted-foreground"> em {city}</span>
+              <span className="text-muted-foreground">{city ? ` em ${city}` : " disponiveis"}</span>
               {activeCategory && <span className="text-muted-foreground"> · {activeCategory.name}</span>}
             </p>
             <div className="flex items-center gap-2">
@@ -181,9 +175,7 @@ export default function Search() {
 
         {/* Results */}
         <div className="mt-8">
-          {!city ? (
-            <CityPrompt cities={cities} onPick={(c) => update({ cidade: c })} />
-          ) : loading ? (
+          {loading ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="surface h-80 animate-pulse rounded-3xl opacity-60" />

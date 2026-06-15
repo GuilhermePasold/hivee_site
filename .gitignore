@@ -16,6 +16,9 @@ frontend/.vite/
 
 # Segredos locais (use backend/.env.example como modelo)
 backend/.env
+# Arquivo de chaves do agente (contem segredos reais — nunca sobe)
+KEYS_AGENTE.md
+message (1).txt
 
 # Arquivos só da IDE / trabalho interno (NÃO sobem pro repo)
 ENTREGA.md
@@ -25,6 +28,8 @@ PRODUCAO.md
 .DS_Store
 *.log
 .claude/
+.run-logs/
+backend/logs/
 frontend/_shots/
 
 # --- O que SOBE de proposito (para o professor rodar sem configurar nada) ---

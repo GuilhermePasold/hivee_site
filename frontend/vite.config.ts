@@ -12,7 +12,12 @@ export default defineConfig({
     port: 5200,
     proxy: {
       "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      "/ws": { target: "ws://127.0.0.1:8000", ws: true },
       "/media": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      // Painel de logs (renderizado pelo Django, fora do SPA) — staff only.
+      "/dashboard": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      "/admin": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      "/static": { target: "http://127.0.0.1:8000", changeOrigin: true },
     },
   },
 });
