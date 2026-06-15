@@ -1,3 +1,9 @@
+import gzip
+import json
+import os
+import uuid
+import urllib.request
+
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.db.models import Avg, Count, Sum
@@ -13,7 +19,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
 from ..geo import haversine_km
-from ..models import Category, Provider
+from ..models import Category, Provider, UserProfile
 from ..serializers import (
     CategorySerializer,
     ProviderSerializer,
@@ -126,8 +132,13 @@ class ProviderViewSet(ViewSet):
 
     @staticmethod
     def _base_queryset(request):
-        """Filtros que o banco resolve: categoria e cidade."""
-        qs = Provider.objects.select_related("category").all()
+        """Filtros que o banco resolve: status, categoria e cidade."""
+        qs = Provider.objects.select_related("category")
+        user = request.user
+        if user.is_staff or user.is_superuser:
+            qs = qs.all()
+        else:
+            qs = qs.filter(status="approved")
         category = request.query_params.get("category")
         if category:
             qs = qs.filter(category__slug=category)
@@ -189,6 +200,12 @@ class ProviderViewSet(ViewSet):
 
     def retrieve(self, request, slug=None):
         provider = Provider.objects.select_related("category").get(slug=slug)
+        user = request.user
+        if provider.status != "approved" and not (user.is_staff or user.is_superuser) and provider.owner != user:
+            return Response(
+                {"detail": "Profissional não encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         lat, lng = _parse_point(request)
         _attach_distance([provider], lat, lng)
         return Response(ProviderSerializer(provider).data)
@@ -196,7 +213,7 @@ class ProviderViewSet(ViewSet):
     @action(detail=False, methods=["get"])
     def recommended(self, request):
         lat, lng = _parse_point(request)
-        providers = list(Provider.objects.select_related("category").all())
+        providers = list(Provider.objects.select_related("category").filter(status="approved"))
         _attach_distance(providers, lat, lng)
 
         scored = []
@@ -211,7 +228,12 @@ class ProviderViewSet(ViewSet):
 
     def create(self, request):
         # A autenticacao ja e garantida por IsAuthenticatedOrReadOnly.
-        serializer = ProviderWriteSerializer(data=request.data)
+        if Provider.objects.filter(owner=request.user).exists():
+            return Response(
+                {"detail": "Você já possui um cadastro como prestador."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        serializer = ProviderWriteSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         provider = serializer.save(owner=request.user, verified=False)
         return Response(
@@ -240,9 +262,10 @@ class CitiesView(APIView):
 
 
 def _auth_response(user, http_status=status.HTTP_200_OK):
-    """Monta a resposta de login/cadastro: token no corpo (clientes de API)
+    """Monta a resposta de login/cadastro: token novo (rotação) no corpo
     E num cookie httpOnly (navegador), conforme o smell fix #2."""
-    token, _ = Token.objects.get_or_create(user=user)
+    Token.objects.filter(user=user).delete()
+    token = Token.objects.create(user=user)
     response = Response(
         {"token": token.key, "user": UserSerializer(user).data},
         status=http_status,
@@ -290,12 +313,18 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
     @extend_schema(
         summary="Encerra a sessao limpando o cookie de token",
         request=None,
         responses={204: None},
     )
     def post(self, request):
+        try:
+            request.user.auth_token.delete()
+        except Exception:
+            pass
         response = Response(status=status.HTTP_204_NO_CONTENT)
         response.delete_cookie(settings.AUTH_COOKIE_NAME)
         return response
@@ -316,11 +345,12 @@ class StatsView(APIView):
         summary="Totais da plataforma", responses=OpenApiTypes.OBJECT
     )
     def get(self, request):
-        agg = Provider.objects.aggregate(avg=Avg("rating"), jobs=Sum("jobs_done"))
-        cities = Provider.objects.exclude(city="").values_list("city", flat=True).distinct().count()
+        qs = Provider.objects.filter(status="approved")
+        agg = qs.aggregate(avg=Avg("rating"), jobs=Sum("jobs_done"))
+        cities = qs.exclude(city="").values_list("city", flat=True).distinct().count()
         return Response(
             {
-                "providers": Provider.objects.count(),
+                "providers": qs.count(),
                 "categories": Category.objects.count(),
                 "cities": cities,
                 "avg_rating": round(agg["avg"] or 0, 2),
@@ -377,6 +407,37 @@ def _replace_query(request, key, value):
     return f"{request.path}?{params.urlencode()}"
 
 
+class CitiesByStateView(APIView):
+    @extend_schema(
+        summary="Cidades de um estado via IBGE",
+        parameters=[OpenApiParameter("uf", str, location=OpenApiParameter.PATH)],
+        responses=OpenApiTypes.OBJECT,
+    )
+    def get(self, request, uf):
+        try:
+            req = urllib.request.Request(
+                f"https://servicodados.ibge.gov.br/api/v1/localidades/estados/{uf}/municipios",
+                headers={"User-Agent": "HIVEE/1.0", "Accept-Encoding": "gzip"},
+            )
+            with urllib.request.urlopen(req, timeout=8) as res:
+                raw = res.read()
+                try:
+                    text = gzip.decompress(raw).decode()
+                except OSError:
+                    text = raw.decode()
+                data = json.loads(text)
+            cities = sorted(
+                [{"city": m["nome"], "state": uf.upper()} for m in data],
+                key=lambda x: x["city"],
+            )
+            return Response(cities)
+        except Exception as e:
+            return Response(
+                {"detail": f"Erro ao carregar cidades: {e}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+
 class AvatarUploadView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -393,5 +454,8 @@ class AvatarUploadView(APIView):
         provider = Provider.objects.filter(slug=slug, owner=request.user).first()
         if not provider:
             return Response({"detail": "Prestador não encontrado."}, status=status.HTTP_404_NOT_FOUND)
-        provider.avatar.save(file.name, file, save=True)
+        safe_name = f"{uuid.uuid4()}{os.path.splitext(file.name)[1] if file.name else '.jpg'}"
+        provider.avatar.save(safe_name, file, save=True)
+        provider.avatar_url = provider.avatar.url
+        provider.save(update_fields=["avatar_url"])
         return Response({"avatar_url": provider.avatar.url}, status=status.HTTP_200_OK)

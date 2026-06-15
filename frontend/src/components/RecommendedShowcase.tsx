@@ -1,6 +1,7 @@
 import { ArrowRight, BadgeCheck, MapPin, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BRL } from "@/lib/utils";
+import Avatar from "@/components/ui/Avatar";
 import type { Recommendation } from "@/types";
 
 // Liquid-glass showcase: a few REAL glass cards (backdrop-filter) sitting over a
@@ -65,7 +66,7 @@ export default function RecommendedShowcase({ recs }: { recs: Recommendation[] }
                     to={`/prestador/${r.slug}`}
                     className={`${glass} flex flex-1 items-center gap-3 p-3`}
                   >
-                    <img src={r.avatar_url} alt={r.name} className="h-10 w-10 rounded-xl object-cover" />
+                    <Avatar src={r.avatar || r.avatar_url} alt={r.name} size={40} className="rounded-xl object-cover" />
                     <div className="min-w-0">
                       <p className="truncate text-xs font-semibold">{r.name}</p>
                       <p className="flex items-center gap-1 text-[11px] text-gold-300">
@@ -86,10 +87,11 @@ export default function RecommendedShowcase({ recs }: { recs: Recommendation[] }
                 {top.match_score}% match
               </span>
               <div className="mt-4 flex items-center gap-4">
-                <img
-                  src={top.avatar_url}
+                <Avatar
+                  src={top.avatar || top.avatar_url}
                   alt={top.name}
-                  className="h-20 w-20 rounded-2xl border-2 border-white/30 object-cover"
+                  size={80}
+                  className="rounded-2xl border-2 border-white/30 object-cover"
                 />
                 <div>
                   <p className="flex items-center gap-1.5 text-2xl font-bold">

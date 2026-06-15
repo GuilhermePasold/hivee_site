@@ -5,6 +5,7 @@ from . import views
 from .views import (
     AvatarUploadView,
     CategoryListView,
+    CitiesByStateView,
     CitiesView,
     LoginView,
     LogoutView,
@@ -40,6 +41,7 @@ urlpatterns = [
     path("api/auth/logout/", LogoutView.as_view(), name="logout"),
     path("api/auth/me/", MeView.as_view(), name="me"),
     path("api/upload-avatar/", AvatarUploadView.as_view(), name="upload-avatar"),
+    path("api/cities-by-state/<str:uf>/", CitiesByStateView.as_view(), name="cities-by-state"),
     # Rotas de /api/providers/ geradas pelo roteador do DRF.
     path("api/", include(router.urls)),
 ]

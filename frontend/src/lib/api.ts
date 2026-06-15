@@ -76,12 +76,14 @@ export interface ProviderInput {
   availability?: string;
   availability_slots?: AvailabilitySlot[];
   skills: string[];
+  cpf?: string;
 }
 
 export const api = {
   categories: () => request<Category[]>("/categories/"),
   cities: () => request<City[]>("/cities/"),
   stats: () => request<PlatformStats>("/stats/"),
+  citiesByState: (uf: string) => request<City[]>(`/cities-by-state/${uf}/`),
 
   providers: (params: ProviderQuery = {}) =>
     request<Paginated<Provider>>("/providers/", { params: params as Record<string, unknown> }),

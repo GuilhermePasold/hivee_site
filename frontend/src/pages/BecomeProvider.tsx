@@ -20,21 +20,39 @@ function emptySlot(): AvailabilitySlot {
   return { day_of_week: 0, start_time: "08:00", end_time: "18:00" };
 }
 
+function validateCPF(cpf: string): boolean {
+  const n = cpf.replace(/\D/g, "");
+  if (n.length !== 11 || n === n[0].repeat(11)) return false;
+  for (let i = 9; i <= 10; i++) {
+    let soma = 0;
+    for (let j = 0; j < i; j++) soma += parseInt(n[j]) * (i + 1 - j);
+    const dig = (soma * 10 % 11) % 10;
+    if (parseInt(n[i]) !== dig) return false;
+  }
+  return true;
+}
+
+function maskCPF(v: string) {
+  const n = v.replace(/\D/g, "").slice(0, 11);
+  return n.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+}
+
 export default function BecomeProvider() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [cities, setCities] = useState<City[]>([]);
   const [catLoading, setCatLoading] = useState(true);
-  const [cityLoading, setCityLoading] = useState(true);
+  const [cities, setCities] = useState<City[]>([]);
+  const [cityLoading, setCityLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     headline: "",
     category: "",
+    cpf: "",
     city: "",
     neighborhood: "",
-    state: "SP",
+    state: "",
     hourly_rate: "80",
     bio: "",
     skills: "",
@@ -47,7 +65,6 @@ export default function BecomeProvider() {
 
   useEffect(() => {
     api.categories().then((d) => { setCategories(d); setCatLoading(false); }).catch(() => setCatLoading(false));
-    api.cities().then((d) => { setCities(d); setCityLoading(false); }).catch(() => setCityLoading(false));
   }, []);
 
   useEffect(() => {
@@ -56,6 +73,13 @@ export default function BecomeProvider() {
 
   function set<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function onStateChange(uf: string) {
+    setForm((f) => ({ ...f, state: uf, city: "" }));
+    if (!uf) { setCities([]); return; }
+    setCityLoading(true);
+    api.citiesByState(uf).then(setCities).catch(() => setCities([])).finally(() => setCityLoading(false));
   }
 
   function updateSlot(idx: number, field: keyof AvailabilitySlot, value: number | string) {
@@ -80,13 +104,20 @@ export default function BecomeProvider() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (!form.name.trim()) { setError("Preencha o nome de exibição."); return; }
+    if (!form.headline.trim()) { setError("Preencha o título."); return; }
     if (!form.category) { setError("Selecione uma categoria."); return; }
+    if (!form.hourly_rate || Number(form.hourly_rate) <= 0) { setError("Informe um valor por hora válido."); return; }
+    if (form.cpf && !validateCPF(form.cpf)) { setError("CPF inválido. Verifique os dígitos."); return; }
+    const skillsArr = form.skills.split(",").map((s) => s.trim()).filter(Boolean);
+    if (!skillsArr.length) { setError("Adicione pelo menos uma especialidade."); return; }
     setLoading(true);
     try {
       let lat: number | null = null;
       let lng: number | null = null;
-      if (form.city) {
-        const found = await searchAddress(`${form.neighborhood}, ${form.city}`);
+      if (form.city && form.state) {
+        const q = [form.neighborhood, form.city, form.state].filter(Boolean).join(", ");
+        const found = await searchAddress(q);
         if (found[0]) {
           lat = found[0].lat;
           lng = found[0].lng;
@@ -94,9 +125,9 @@ export default function BecomeProvider() {
       }
 
       const provider = await api.createProvider({
-        name: form.name,
-        headline: form.headline,
-        bio: form.bio,
+        name: form.name.trim(),
+        headline: form.headline.trim(),
+        bio: form.bio.trim(),
         category: form.category,
         hourly_rate: Number(form.hourly_rate),
         city: form.city || undefined,
@@ -104,8 +135,9 @@ export default function BecomeProvider() {
         state: form.state || undefined,
         latitude: lat,
         longitude: lng,
+        cpf: form.cpf || undefined,
         availability_slots: slots,
-        skills: form.skills.split(",").map((s) => s.trim()).filter(Boolean),
+        skills: skillsArr,
       });
 
       if (avatarFile) {
@@ -121,6 +153,41 @@ export default function BecomeProvider() {
   }
 
   if (authLoading) return null;
+
+  if (user?.provider_status === "approved") {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6 py-28">
+        <div className="glass w-full max-w-md rounded-[2rem] p-10 text-center">
+          <h1 className="font-display text-2xl font-bold">Você já é um profissional HIVEE</h1>
+          <p className="mt-2 text-muted-foreground">Seu perfil está aprovado e disponível na plataforma.</p>
+          <Link to={`/prestador/${user.provider_slug}`} className="btn-gold mt-6 inline-block py-3">Ver meu perfil</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (user?.provider_status === "pending") {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6 py-28">
+        <div className="glass w-full max-w-md rounded-[2rem] p-10 text-center">
+          <Lock className="mx-auto h-10 w-10 text-gold-400" />
+          <h1 className="mt-4 font-display text-2xl font-bold">Cadastro em análise</h1>
+          <p className="mt-2 text-muted-foreground">Seu perfil foi enviado e está sendo analisado pela nossa equipe. Voltaremos com uma resposta em breve.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user?.provider_status === "rejected") {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6 py-28">
+        <div className="glass w-full max-w-md rounded-[2rem] p-10 text-center">
+          <h1 className="font-display text-2xl font-bold">Cadastro não aprovado</h1>
+          <p className="mt-2 text-muted-foreground">Seu cadastro como prestador não foi aprovado. Entre em contato conosco para mais informações.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -162,24 +229,33 @@ export default function BecomeProvider() {
             options={categories.map((c) => ({ value: c.slug, label: c.name }))}
           />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Select
-              label="Cidade"
-              value={form.city}
-              onChange={(v) => set("city", v)}
-              placeholder={cityLoading ? "Carregando…" : "Selecione…"}
-              options={cities.map((c) => ({ value: c.city, label: `${c.city}, ${c.state}` }))}
-            />
+          <Field label="CPF" value={form.cpf} onChange={(v) => set("cpf", maskCPF(v))} placeholder="000.000.000-00" />
+
+          {/* Address - fully optional */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-foreground/60">
+              Endereço <span className="text-xs text-muted-foreground/50">(opcional)</span>
+            </span>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Select
+                label="Estado (UF)"
+                value={form.state}
+                onChange={onStateChange}
+                placeholder="Selecione…"
+                options={UF_LIST.map((uf) => ({ value: uf, label: uf }))}
+              />
+              <Select
+                label="Cidade"
+                value={form.city}
+                onChange={(v) => set("city", v)}
+                placeholder={!form.state ? "Selecione o estado primeiro" : cityLoading ? "Carregando…" : "Selecione…"}
+                options={cities.map((c) => ({ value: c.city, label: c.city }))}
+              />
+            </div>
             <Field label="Bairro" value={form.neighborhood} onChange={(v) => set("neighborhood", v)} placeholder="Ex.: Pinheiros" />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Select
-              label="Estado (UF)"
-              value={form.state}
-              onChange={(v) => set("state", v)}
-              options={UF_LIST.map((uf) => ({ value: uf, label: uf }))}
-            />
             <Field label="Valor por hora (R$)" type="number" value={form.hourly_rate} onChange={(v) => set("hourly_rate", v)} placeholder="80" />
           </div>
 

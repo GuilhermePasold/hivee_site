@@ -7,6 +7,7 @@ import { MinimalistHero } from "@/components/ui/minimalist-hero";
 import { StackedCardsInteraction } from "@/components/ui/stacked-cards-interaction";
 import Icon from "@/components/ui/Icon";
 import PhoneApp from "@/components/PhoneApp";
+import Avatar from "@/components/ui/Avatar";
 import { api } from "@/lib/api";
 import { getUserLocation } from "@/lib/location";
 import { BRL } from "@/lib/utils";
@@ -159,7 +160,7 @@ function RecCard({ rec }: { rec: Recommendation }) {
         <span className="absolute left-4 top-4 inline-flex items-center rounded-full border border-gold-500/30 bg-black/60 px-3 py-1 text-[11px] font-semibold text-gold-300">
           {rec.match_score}% match
         </span>
-        <img src={rec.avatar_url} alt={rec.name} className="absolute -bottom-8 left-6 h-20 w-20 rounded-2xl border-2 border-white/20 object-cover" />
+        <Avatar src={rec.avatar || rec.avatar_url} alt={rec.name} size={80} className="absolute -bottom-8 left-6 rounded-2xl border-2 border-white/20 object-cover" />
       </div>
       <div className="flex flex-1 flex-col gap-3 p-6 pt-11">
         <div>

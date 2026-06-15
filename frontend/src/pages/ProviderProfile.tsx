@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { BRL } from "@/lib/utils";
+import Avatar from "@/components/ui/Avatar";
 import Icon from "@/components/ui/Icon";
 import type { Provider } from "@/types";
 
@@ -76,10 +77,11 @@ export default function ProviderProfile() {
         <div className="surface relative overflow-hidden rounded-[2rem]">
           <div className="h-40 w-full" style={{ background: `linear-gradient(135deg, ${accent}66, transparent 70%)` }} />
           <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-end sm:gap-6 sm:p-8">
-            <img
-              src={p.avatar_url}
+            <Avatar
+              src={p.avatar || p.avatar_url}
               alt={p.name}
-              className="-mt-20 h-28 w-28 rounded-3xl border-2 border-white/20 object-cover shadow-xl"
+              size={112}
+              className="-mt-20 rounded-3xl border-2 border-white/20 object-cover shadow-xl"
             />
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -153,7 +155,7 @@ export default function ProviderProfile() {
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
-                    <Marker position={[p.latitude, p.longitude]} icon={pin(p.avatar_url)} />
+                    <Marker position={[p.latitude, p.longitude]} icon={pin(p.avatar || p.avatar_url)} />
                   </MapContainer>
                 </div>
               </div>

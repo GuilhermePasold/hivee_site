@@ -42,7 +42,7 @@ class Provider(models.Model):
         related_name="provider_profiles",
     )
 
-    avatar_url = models.URLField()
+    avatar_url = models.URLField(blank=True, default="")
     cover_url = models.URLField(blank=True)
 
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
@@ -63,7 +63,7 @@ class Provider(models.Model):
     response_time = models.CharField(max_length=40, default="em 1 hora")
     availability = models.CharField(max_length=60, default="Disponível esta semana")
     skills = models.JSONField(default=list)
-    member_since = models.PositiveIntegerField(default=2022)
+    member_since = models.PositiveIntegerField(default=2026)
 
     status = models.CharField(
         max_length=20,
@@ -124,6 +124,27 @@ class UserProfile(models.Model):
     )
     cpf = models.CharField(max_length=14, unique=True, blank=True, null=True)
     telefone = models.CharField(max_length=15, blank=True, default="")
+    cpf_status = models.CharField(
+        max_length=30,
+        default="pending_verification",
+        choices=[
+            ("verified", "Verificado"),
+            ("pending_verification", "Pendente de verificação"),
+            ("mismatch", "Nome não confere com o CPF"),
+        ],
+    )
+    cpf_name = models.CharField(max_length=200, blank=True, default="")
+    provider_status = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        choices=[
+            ("", "Não é prestador"),
+            ("pending", "Pendente de aprovação"),
+            ("approved", "Aprovado"),
+            ("rejected", "Rejeitado"),
+        ],
+    )
 
     class Meta:
         verbose_name = "Perfil do usuário"

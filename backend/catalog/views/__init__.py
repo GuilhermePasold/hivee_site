@@ -1,6 +1,7 @@
 from .api_views import (
     AvatarUploadView,
     CategoryListView,
+    CitiesByStateView,
     CitiesView,
     LoginView,
     LogoutView,

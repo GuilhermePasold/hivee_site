@@ -38,6 +38,7 @@ class ApiTestBase(APITestCase):
             longitude=-47.06,
             verified=True,
             skills=["eletrica", "reparos"],
+            status="approved",
         )
         cls.user = User.objects.create_user(
             username="cliente@hivee.dev",
@@ -115,8 +116,7 @@ class PermissionTests(ApiTestBase):
         self.client.force_authenticate(user=self.user)
         res = self.client.post("/api/providers/", self.payload, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        # avatar_url e opcional: o create() aplica um padrao.
-        self.assertTrue(res.data["avatar_url"])
+        self.assertIsNone(res.data["avatar_url"])
         self.assertFalse(res.data["verified"])
 
 
@@ -162,3 +162,6 @@ class DocumentationTests(ApiTestBase):
 
     def test_swagger_docs_available(self):
         self.assertEqual(self.client.get("/api/docs/").status_code, 200)
+
+
+

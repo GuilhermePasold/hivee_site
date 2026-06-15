@@ -86,6 +86,7 @@ export interface User {
   is_provider: boolean;
   provider_slug: string | null;
   cpf?: string | null;
+  provider_status?: "" | "pending" | "approved" | "rejected";
 }
 
 export interface AuthResponse {

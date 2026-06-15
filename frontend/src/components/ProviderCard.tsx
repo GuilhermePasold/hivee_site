@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import type { Provider } from "@/types";
 import { BRL } from "@/lib/utils";
 import Icon from "@/components/ui/Icon";
+import Avatar from "@/components/ui/Avatar";
 
 export default function ProviderCard({ provider }: { provider: Provider }) {
   const accent = provider.category.accent || "#eab308";
@@ -19,11 +20,11 @@ export default function ProviderCard({ provider }: { provider: Provider }) {
           <Icon name={provider.category.icon} className="h-3 w-3 text-gold-400" />
           {provider.category.name}
         </span>
-        <img
-          src={provider.avatar_url}
+        <Avatar
+          src={provider.avatar || provider.avatar_url}
           alt={provider.name}
-          loading="lazy"
-          className="absolute -bottom-7 left-5 h-16 w-16 rounded-2xl border-2 border-white/20 object-cover"
+          size={64}
+          className="absolute -bottom-7 left-5 rounded-2xl border-2 border-white/20 object-cover"
         />
       </div>
 
