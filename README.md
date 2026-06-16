@@ -100,6 +100,36 @@ agente com OpenAI, WhatsApp ou RAG, crie `backend/.env` a partir de
 Nunca versione `backend/.env`, `KEYS_AGENTE.md` ou exports de workflow com
 credenciais.
 
+### Usando o zip de ambiente do professor
+
+Se você recebeu o arquivo `hivee-env-professor.zip` por fora do GitHub, ele
+contém o `.env` real necessário para testar integrações externas.
+
+1. Baixe ou clone este repositório.
+2. Coloque `hivee-env-professor.zip` na raiz do projeto, ao lado de `README.md`.
+3. Extraia o zip na raiz do projeto.
+4. Confirme que o arquivo abaixo passou a existir:
+
+```text
+backend/.env
+```
+
+No PowerShell, a extração pode ser feita assim:
+
+```powershell
+Expand-Archive .\hivee-env-professor.zip -DestinationPath . -Force
+Test-Path .\backend\.env
+```
+
+Depois rode:
+
+```powershell
+.\start-dev.ps1
+```
+
+O zip não é versionado por segurança. Ele deve ser enviado separadamente para
+quem realmente precisa testar OpenAI, WhatsApp ou RAG.
+
 ### Mínimo para chat com IA
 
 ```env
@@ -301,6 +331,7 @@ Não commitar:
 - `backend/.env`
 - `KEYS_AGENTE.md`
 - `message (1).txt`
+- `hivee-env-professor.zip`
 - `.run-logs/`
 - `backend/logs/`
 - `backend/media/`

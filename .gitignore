@@ -19,6 +19,7 @@ backend/.env
 # Arquivo de chaves do agente (contem segredos reais — nunca sobe)
 KEYS_AGENTE.md
 message (1).txt
+hivee-env-professor.zip
 
 # Arquivos só da IDE / trabalho interno (NÃO sobem pro repo)
 ENTREGA.md
